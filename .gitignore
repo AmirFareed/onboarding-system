@@ -1,0 +1,97 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+.venv/
+Myenv/
+venv/
+env/
+ENV/
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# IDE
+.vscode/
+.idea/
+.claude/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Environment files
+.env
+backend/.env
+
+# Node.js / Frontend
+frontend/node_modules/
+frontend/dist/
+node_modules/
+
+# Storage (uploaded documents — never commit)
+storage/
+
+# OCR cache (extracted text from real documents — never commit)
+ocr_cache/
+.ocr_cache/
+
+# Bulk queue worker process-liveness heartbeat (runtime artifact)
+worker.heartbeat
+
+# Saved pre-demo lint/test/build output (recurring scratch artifact, not source)
+*_predemo.txt
+
+# Output files (generated, not source)
+extracted_ocr/
+extracted_ocr_pages/
+temp_page_*.png
+recovered_page_*.png
+page_*_layer_*.jpeg
+page_*_layer_*.png
+temp_uploads/
+
+# Logs
+logs/
+*.log
+
+# Queue worker runtime state (backend/worker.heartbeat)
+worker.heartbeat
+
+# Database
+*.db
+*.sqlite3
+
+# Sensitive/Large files (don't commit actual onboarding documents)
+data/samples/*.pdf
+data/samples/*.docx
+data/*.db
+/demo/
+/backend/test_*.txt
+/backend/*_out.txt
+
+# Pytest
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Keep diagrams and doc PDFs
+!diagrams/*.png
+!diagrams/*.jpg
+!docs/*.pdf
+
+/Confidential Data/
+/Individual PDFs/
+
+# Confidential credentials — never commit account/password docs
+/docs/DEV_ACCOUNTS.md

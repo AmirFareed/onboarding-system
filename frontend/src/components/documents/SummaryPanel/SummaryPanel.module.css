@@ -1,0 +1,81 @@
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 24px;
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  position: sticky;
+  top: calc(var(--navbar-height) + 24px);
+}
+
+.title {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.counts {
+  display: flex;
+  gap: 12px;
+}
+
+.count {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 14px;
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+}
+
+.countValue {
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--color-primary-dark);
+}
+
+.countLabel {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.note {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+}
+
+.continue {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 20px;
+  border: none;
+  border-radius: var(--radius-md);
+  background: var(--color-primary);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color var(--transition);
+}
+
+.continue:hover:not(:disabled) {
+  background: var(--color-primary-dark);
+}
+
+.continue:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.continue svg {
+  width: 18px;
+  height: 18px;
+}

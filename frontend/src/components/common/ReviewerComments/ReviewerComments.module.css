@@ -1,0 +1,162 @@
+.container {
+  border: 1px solid #d7dee6;
+  border-radius: 8px;
+  padding: 16px 20px;
+  background: #fff;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1a2332;
+  margin: 0;
+}
+
+.hint {
+  font-size: 12px;
+  color: #5b6b7c;
+  margin: 0 0 12px;
+}
+
+.loading {
+  font-size: 13px;
+  color: #5b6b7c;
+  padding: 12px 0;
+}
+
+.editBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border: 1px solid #d7dee6;
+  border-radius: 6px;
+  background: #fff;
+  color: #5b6b7c;
+  font-size: 12px;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.editBtn:hover {
+  border-color: #175cd3;
+  color: #175cd3;
+}
+
+.display {
+  background: #f4f6f9;
+  border: 1px solid #d7dee6;
+  border-radius: 6px;
+  padding: 12px 14px;
+}
+
+.commentText {
+  font-size: 13px;
+  line-height: 1.6;
+  color: #1a2332;
+  white-space: pre-wrap;
+}
+
+.defaultBadge {
+  margin-top: 8px;
+  font-size: 11px;
+  color: #5b6b7c;
+  font-style: italic;
+}
+
+.savedBadge {
+  margin-top: 8px;
+  font-size: 12px;
+  color: #1e7e34;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.editor {
+  display: flex;
+  flex-direction: column;
+}
+
+.textarea {
+  width: 100%;
+  min-height: 100px;
+  padding: 10px 12px;
+  border: 1px solid #d7dee6;
+  border-radius: 6px;
+  font-size: 13px;
+  font-family: inherit;
+  line-height: 1.6;
+  color: #1a2332;
+  resize: vertical;
+  transition: border-color 0.15s;
+}
+
+.textarea:focus {
+  outline: none;
+  border-color: #175cd3;
+  box-shadow: 0 0 0 2px rgba(23, 92, 211, 0.15);
+}
+
+.editorFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 8px;
+}
+
+.charCount {
+  font-size: 11px;
+  color: #5b6b7c;
+}
+
+.editorActions {
+  display: flex;
+  gap: 8px;
+}
+
+.cancelBtn {
+  padding: 6px 12px;
+  border: 1px solid #d7dee6;
+  border-radius: 6px;
+  background: #fff;
+  color: #5b6b7c;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.cancelBtn:hover {
+  background: #f4f6f9;
+}
+
+.saveBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 14px;
+  border: none;
+  border-radius: 6px;
+  background: #175cd3;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.saveBtn:hover {
+  background: #1249a5;
+}
+
+.saveBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

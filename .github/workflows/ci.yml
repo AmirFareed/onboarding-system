@@ -1,0 +1,75 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  backend-lint:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install pip-tools
+      - run: pip-sync requirements-lock.txt
+      - run: ruff check app
+      - run: mypy --config-file mypy.ini
+
+  backend-tests:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: finance_app
+          POSTGRES_PASSWORD: change-me
+          POSTGRES_DB: finance_verification
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      ENVIRONMENT: testing
+      DATABASE_URL: postgresql+psycopg://finance_app:change-me@localhost:5432/finance_verification
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install pip-tools
+      # paddleocr is intentionally not installed here: the 3 real-OCR
+      # integration tests self-skip via pytest.importorskip("paddleocr")
+      # (foundation audit, Section 5), keeping this job fast. A separate,
+      # slower scheduled job with the full ML stack installed should cover
+      # those.
+      - run: pip-sync requirements-lock.txt
+      - run: alembic upgrade head
+      - run: pytest -q
+
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run test:ci
+      - run: npm run build

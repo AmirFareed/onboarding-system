@@ -1,0 +1,11 @@
+{
+  "name": "onboarding-system",
+  "private": true,
+  "description": "Root-level dev orchestration only. The real backend (Python/FastAPI) and frontend (Vite/React) projects live in backend/ and frontend/ with their own dependencies -- this file does not replace either.",
+  "scripts": {
+    "dev": "concurrently -n API,WORKER,WEB -c blue,green,magenta \"cd backend && .venv\\Scripts\\python.exe -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload\" \"cd backend && .venv\\Scripts\\python.exe -m app.bulk_queue\" \"cd frontend && npm run dev\""
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}

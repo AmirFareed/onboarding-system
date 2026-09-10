@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Document Validation Report — Application #{{ report.application_id }}</title>
+<style>
+  :root {
+    --ink: #1a2332;
+    --muted: #5b6b7c;
+    --line: #d7dee6;
+    --pass: #1e7e34;
+    --fail: #b42318;
+    --warn: #b54708;
+    --pending: #175cd3;
+    --bg-soft: #f4f6f9;
+    --bg-page: #fff;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0 auto;
+    max-width: 900px;
+    padding: 40px 36px;
+    font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    font-size: 13px;
+    color: var(--ink);
+    line-height: 1.6;
+    background: var(--bg-page);
+  }
+
+  /* -- Header -- */
+  .report-header {
+    border-bottom: 3px solid var(--ink);
+    padding-bottom: 16px;
+    margin-bottom: 20px;
+  }
+  .report-header h1 {
+    font-size: 24px;
+    margin: 0 0 2px;
+    letter-spacing: -0.3px;
+  }
+  .report-header .app-name {
+    font-size: 16px;
+    font-weight: 600;
+    margin: 6px 0;
+  }
+  .report-header .meta {
+    color: var(--muted);
+    font-size: 12px;
+    margin-top: 4px;
+  }
+  .report-header .meta span { margin-right: 16px; }
+
+  /* -- Status banner -- */
+  .status-banner {
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin: 0 0 24px;
+    color: #fff;
+    font-size: 15px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .status-banner.approved { background: var(--pass); }
+  .status-banner.failed { background: var(--warn); }
+  .status-banner.rejected { background: var(--fail); }
+  .status-banner.manual { background: var(--pending); }
+  .status-banner .status-sub {
+    font-weight: 400;
+    font-size: 13px;
+    opacity: 0.9;
+    margin-top: 2px;
+  }
+
+  /* -- Summary cards -- */
+  .summary-cards {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin: 0 0 28px;
+  }
+  .summary-card {
+    flex: 1 1 130px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 12px 14px;
+    text-align: center;
+  }
+  .summary-card .value { font-size: 22px; font-weight: 700; }
+  .summary-card .label { color: var(--muted); font-size: 11px; margin-top: 2px; }
+
+  /* -- Sections -- */
+  h2 {
+    font-size: 16px;
+    margin: 28px 0 12px;
+    padding-bottom: 6px;
+    border-bottom: 2px solid var(--line);
+  }
+  h3 {
+    font-size: 14px;
+    margin: 18px 0 8px;
+    color: var(--ink);
+  }
+
+  /* -- Tables -- */
+  table { width: 100%; border-collapse: collapse; margin: 10px 0; }
+  th, td {
+    border: 1px solid var(--line);
+    padding: 8px 10px;
+    text-align: left;
+    vertical-align: top;
+  }
+  th { background: var(--bg-soft); font-weight: 600; font-size: 12px; }
+  td { font-size: 13px; }
+
+  /* -- Badges -- */
+  .badge {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #fff;
+    white-space: nowrap;
+  }
+  .badge.received { background: var(--pass); }
+  .badge.missing { background: var(--fail); }
+  .badge.duplicate { background: var(--warn); }
+  .badge.review { background: var(--pending); }
+  .badge.partial { background: var(--warn); }
+
+  /* -- Attention items -- */
+  .attention-item {
+    padding: 12px 16px;
+    margin: 8px 0;
+    border-radius: 6px;
+    border-left: 4px solid var(--line);
+    background: var(--bg-soft);
+  }
+  .attention-item.critical { border-left-color: var(--fail); background: #fef2f2; }
+  .attention-item.warning { border-left-color: var(--warn); background: #fffbeb; }
+  .attention-item.info { border-left-color: var(--pending); background: #eff6ff; }
+  .attention-item .item-title {
+    font-weight: 700;
+    font-size: 13px;
+    margin-bottom: 4px;
+  }
+  .attention-item .item-body {
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+
+  /* -- Verified list -- */
+  .verified-list {
+    list-style: none;
+    margin: 8px 0;
+    padding: 0;
+  }
+  .verified-list li {
+    padding: 6px 0;
+    border-bottom: 1px solid var(--line);
+    font-size: 13px;
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  .verified-list li:last-child { border-bottom: none; }
+  .check-icon { color: var(--pass); font-weight: 700; flex-shrink: 0; }
+
+  /* -- Next steps -- */
+  .next-steps {
+    padding: 20px;
+    margin: 12px 0;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--bg-soft);
+  }
+  .next-steps h3 {
+    margin-top: 0;
+    font-size: 15px;
+  }
+  .next-steps ol, .next-steps ul {
+    margin: 6px 0;
+    padding-left: 20px;
+  }
+  .next-steps li {
+    margin: 4px 0;
+    font-size: 13px;
+  }
+  .next-steps .step-group {
+    margin: 14px 0 0;
+  }
+  .next-steps .step-group:first-child { margin-top: 0; }
+  .next-steps .step-label {
+    font-weight: 700;
+    font-size: 13px;
+    margin-bottom: 4px;
+  }
+
+  /* -- Comments -- */
+  .comments-box {
+    padding: 14px 16px;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    background: var(--bg-soft);
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--ink);
+  }
+
+  /* -- Footer -- */
+  .footer {
+    margin-top: 36px;
+    padding-top: 12px;
+    border-top: 2px solid var(--line);
+    color: var(--muted);
+    font-size: 11px;
+    line-height: 1.6;
+  }
+  .footer .important {
+    padding: 12px 16px;
+    margin-bottom: 12px;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    background: var(--bg-soft);
+    font-size: 12px;
+    color: var(--ink);
+    line-height: 1.5;
+  }
+
+  /* -- Print -- */
+  @media print {
+    body { padding: 0; font-size: 11px; }
+    h2 { break-after: avoid; }
+    table, .status-banner, .attention-item, .next-steps, .comments-box { break-inside: avoid; }
+    a { color: var(--ink); text-decoration: none; }
+  }
+</style>
+</head>
+<body>
+
+{# ================================================================ #}
+{#  Helpers                                                          #}
+{# ================================================================ #}
+{% set ns = namespace(
+  received_count=0,
+  missing_count=0,
+  duplicate_count=0,
+  partial_count=0,
+  verified_count=report.rule_summary.passed,
+  failed_count=report.rule_summary.failed,
+  pending_count=report.rule_summary.pending_manual_review,
+  warning_count=report.rule_summary.warnings,
+  total_required=0,
+) %}
+
+{% if completeness %}
+  {% for doc in completeness.required_documents %}
+    {% set ns.total_required = ns.total_required + 1 %}
+    {% if doc.is_present %}
+      {% set ns.received_count = ns.received_count + 1 %}
+      {% set req = required_copies.get(doc.document_type, 1) %}
+      {% if doc.copy_count > req %}
+        {% set ns.duplicate_count = ns.duplicate_count + 1 %}
+      {% elif doc.copy_count < req %}
+        {% set ns.partial_count = ns.partial_count + 1 %}
+      {% endif %}
+    {% else %}
+      {% set ns.missing_count = ns.missing_count + 1 %}
+    {% endif %}
+  {% endfor %}
+{% endif %}
+
+{# Categorize recommendations #}
+{% set ns_rec = namespace(
+  doc_issues=[],
+  info_issues=[],
+  sig_stamp_issues=[],
+  review_items=[],
+) %}
+{% for rec in report.recommendations %}
+  {% if rec.code in ['MISSING_REQUIRED_DOCUMENT', 'DUPLICATE_REQUIRED_DOCUMENT'] %}
+    {% set ns_rec.doc_issues = ns_rec.doc_issues + [rec] %}
+  {% elif rec.code in ['IBAN_INCONSISTENCY', 'HOLDER_INCONSISTENCY', 'ACCOUNT_NUMBER_INCONSISTENCY', 'PERIOD_INCONSISTENCY', 'BALANCE_RECONCILIATION'] %}
+    {% set ns_rec.info_issues = ns_rec.info_issues + [rec] %}
+  {% elif rec.code in ['MISSING_SIGNATURE', 'MISSING_STAMP'] %}
+    {% set ns_rec.sig_stamp_issues = ns_rec.sig_stamp_issues + [rec] %}
+  {% elif rec.code in ['CORRECT_LOW_CONFIDENCE', 'REVIEW_DATES', 'VERIFY_BLURRED_DOCUMENTS'] %}
+    {% set ns_rec.review_items = ns_rec.review_items + [rec] %}
+  {% endif %}
+{% endfor %}
+
+{# Has anything requiring attention #}
+{% set has_confirmed_issues = (ns.failed_count > 0 or ns.warning_count > 0) %}
+{% set has_pending_doc_checks = (ns.missing_count > 0) %}
+{% set has_review_items = (ns.pending_count > 0 or ns_rec.review_items | length > 0) %}
+{% set has_any_action = (has_confirmed_issues or has_pending_doc_checks or has_review_items) %}
+
+{# Status helpers #}
+{% set status_display = {
+  'APPROVED': 'Approved',
+  'FAILED': 'Action Required',
+  'REJECTED': 'Rejected',
+  'MANUAL_REVIEW_REQUIRED': 'Under Review',
+  'PENDING_REVIEW': 'Under Review',
+  'SUBMITTED': 'Submitted',
+  'UPLOADED': 'Uploaded',
+  'PROCESSING': 'Processing',
+  'NEEDS_DOCUMENTS': 'Documents Required',
+  'CORRECTED': 'Corrected',
+} %}
+
+{# ================================================================ #}
+{#  REPORT HEADER                                                    #}
+{# ================================================================ #}
+<div class="report-header">
+  <h1>Document Validation Report</h1>
+  {% if report.application.name %}
+  <div class="app-name">{{ report.application.name }}</div>
+  {% endif %}
+  <div class="meta">
+    <span>Application #{{ report.application.application_id }}</span>
+    <span>Submitted {{ report.application.submitted_at.strftime("%B %d, %Y") }}</span>
+    <span>Report generated {{ report.generated_at.strftime("%B %d, %Y") }}</span>
+  </div>
+</div>
+
+{# ================================================================ #}
+{#  STATUS BANNER                                                    #}
+{# ================================================================ #}
+{% if report.overall_status == 'APPROVED' %}
+<div class="status-banner approved">
+  <div>
+    &#10003; Validation Approved
+    <div class="status-sub">All required documents have been received and verification checks have been completed.</div>
+  </div>
+</div>
+{% elif report.overall_status == 'REJECTED' %}
+<div class="status-banner rejected">
+  <div>
+    &#10007; Application Rejected
+    <div class="status-sub">This application could not be approved. Please review the issues below and contact your relationship manager.</div>
+  </div>
+</div>
+{% elif report.overall_status == 'FAILED' %}
+<div class="status-banner failed">
+  <div>
+    &#9888; Action Required — Additional Documents and Verification Needed
+    <div class="status-sub">Some items require your attention before the review can be completed. Please review the details below.</div>
+  </div>
+</div>
+{% else %}
+<div class="status-banner manual">
+  <div>
+    &#9202; Under Review
+    <div class="status-sub">Your application is being reviewed. A decision will be communicated once the review is complete.</div>
+  </div>
+</div>
+{% endif %}
+
+{# ================================================================ #}
+{#  EXECUTIVE SUMMARY                                                #}
+{# ================================================================ #}
+<h2>Executive Summary</h2>
+<div class="summary-cards">
+  <div class="summary-card">
+    <div class="value">{{ ns.received_count }} / {{ ns.total_required }}</div>
+    <div class="label">Documents Received</div>
+  </div>
+  <div class="summary-card">
+    <div class="value" style="color: var(--fail);">{{ ns.missing_count }}</div>
+    <div class="label">Documents Still Required</div>
+  </div>
+  <div class="summary-card">
+    <div class="value" style="color: var(--pass);">{{ ns.verified_count }}</div>
+    <div class="label">Checks Passed</div>
+  </div>
+  <div class="summary-card">
+    <div class="value" style="color: var(--warn);">{{ ns.failed_count + ns.warning_count }}</div>
+    <div class="label">Items Requiring Attention</div>
+  </div>
+  <div class="summary-card">
+    <div class="value" style="color: var(--pending);">{{ ns.pending_count }}</div>
+    <div class="label">Awaiting Manual Review</div>
+  </div>
+</div>
+
+{# ================================================================ #}
+{#  DOCUMENTS RECEIVED / REQUIRED                                    #}
+{# ================================================================ #}
+<h2>Documents</h2>
+{% if completeness and completeness.required_documents %}
+<table>
+  <thead>
+    <tr>
+      <th style="width: 36%;">Required Document</th>
+      <th style="width: 20%;">Status</th>
+      <th>What You Need to Do</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for doc in completeness.required_documents %}
+    {% set label = doc_labels.get(doc.document_type, doc.document_type.value if doc.document_type.value is defined else doc.document_type) %}
+    {% set req = required_copies.get(doc.document_type, 1) %}
+    <tr>
+      <td><strong>{{ label }}</strong></td>
+      <td>
+        {% if doc.is_present %}
+          {% if doc.copy_count > req %}
+            <span class="badge duplicate">Extra Copies</span>
+          {% elif doc.copy_count == req %}
+            <span class="badge received">&#10003; Received</span>
+          {% else %}
+            <span class="badge partial">Partial</span>
+          {% endif %}
+        {% else %}
+          <span class="badge missing">&#10007; Missing</span>
+        {% endif %}
+      </td>
+      <td>
+        {% if doc.is_present %}
+          {% if doc.copy_count > req %}
+            {{ doc.copy_count }} copies received ({{ req }} required). Extra copies will be disregarded.
+          {% elif doc.copy_count == req %}
+            No action required.
+          {% else %}
+            {{ doc.copy_count }} of {{ req }} copies received. Please provide {{ req - doc.copy_count }} additional copy{{ 'ies' if (req - doc.copy_count) > 1 else 'y' }}.
+          {% endif %}
+        {% else %}
+          Please provide this document.
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p style="color: var(--muted);">Document information unavailable.</p>
+{% endif %}
+
+{# ================================================================ #}
+{#  DOCUMENTS STILL REQUIRED                                         #}
+{# ================================================================ #}
+{% if ns.missing_count > 0 %}
+<h2>Documents Still Required</h2>
+<p style="font-size: 13px; margin: 0 0 10px;">
+  The following {{ ns.missing_count }} document{{ 's are' if ns.missing_count != 1 else ' is' }} required to complete the verification process:
+</p>
+<table>
+  <thead>
+    <tr>
+      <th style="width: 40%;">Document</th>
+      <th>Copies Required</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for missing in completeness.missing_documents %}
+    {% set label = doc_labels.get(missing, missing.value if missing.value is defined else missing) %}
+    {% set req = required_copies.get(missing, 1) %}
+    <tr>
+      <td><strong>{{ label }}</strong></td>
+      <td>{{ req }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+<p style="font-size: 12px; color: var(--muted); margin: 8px 0 0;">
+  These documents are required to complete the remaining verification checks. Please provide them so the review can continue.
+</p>
+{% endif %}
+
+{# ================================================================ #}
+{#  CONFIRMED ISSUES REQUIRING ATTENTION                             #}
+{# ================================================================ #}
+{% if has_confirmed_issues %}
+<h2>Issues Requiring Attention</h2>
+
+{# Document issues #}
+{% if ns_rec.doc_issues | length > 0 %}
+<h3>Document Issues</h3>
+{% for rec in ns_rec.doc_issues %}
+<div class="attention-item critical">
+  <div class="item-title">
+    {% if rec.code == 'MISSING_REQUIRED_DOCUMENT' %}
+      Missing Required Document
+    {% elif rec.code == 'DUPLICATE_REQUIRED_DOCUMENT' %}
+      Duplicate Document Submitted
+    {% endif %}
+  </div>
+  <div class="item-body">{{ rec.message }}</div>
+</div>
+{% endfor %}
+{% endif %}
+
+{# Information verification issues #}
+{% if ns_rec.info_issues | length > 0 %}
+<h3>Information Verification</h3>
+{% set ns_info = namespace(has_iban=false) %}
+{% for rec in ns_rec.info_issues %}
+  {% if rec.code in ['IBAN_INCONSISTENCY', 'ACCOUNT_NUMBER_INCONSISTENCY'] and not ns_info.has_iban %}
+<div class="attention-item warning">
+  <div class="item-title">Account Information Requires Verification</div>
+  <div class="item-body">
+    The account number or IBAN provided in the submitted documents does not appear to match consistently. Please verify the account number and IBAN against the Account Maintenance Certificate.
+  </div>
+</div>
+{% set ns_info.has_iban = true %}
+  {% elif rec.code == 'HOLDER_INCONSISTENCY' %}
+<div class="attention-item warning">
+  <div class="item-title">Account Holder Name Requires Verification</div>
+  <div class="item-body">
+    The account holder name differs between the submitted documents. Please verify the name against the original Account Maintenance Certificate.
+  </div>
+</div>
+  {% elif rec.code == 'PERIOD_INCONSISTENCY' %}
+<div class="attention-item warning">
+  <div class="item-title">Statement Dates Require Verification</div>
+  <div class="item-body">
+    The statement periods on the submitted documents do not match. Please verify the dates on all submitted documents.
+  </div>
+</div>
+  {% elif rec.code == 'BALANCE_RECONCILIATION' %}
+<div class="attention-item warning">
+  <div class="item-title">Account Balance Requires Verification</div>
+  <div class="item-body">
+    The account balances could not be reconciled across the submitted documents. Please verify the balance information against the original documents.
+  </div>
+</div>
+  {% endif %}
+{% endfor %}
+{% endif %}
+
+{# Signature and stamp issues #}
+{% if ns_rec.sig_stamp_issues | length > 0 %}
+<h3>Document Verification</h3>
+{% for rec in ns_rec.sig_stamp_issues %}
+<div class="attention-item warning">
+  <div class="item-title">
+    {% if rec.code == 'MISSING_SIGNATURE' %}
+      Signature Verification Required
+    {% elif rec.code == 'MISSING_STAMP' %}
+      Stamp Verification Required
+    {% endif %}
+  </div>
+  <div class="item-body">
+    {% if rec.code == 'MISSING_SIGNATURE' %}
+      A signature could not be detected on one or more submitted documents. Please ensure all documents are signed where required.
+    {% elif rec.code == 'MISSING_STAMP' %}
+      An official stamp could not be detected on one or more submitted documents. Please ensure all documents bear the required stamp.
+    {% endif %}
+  </div>
+</div>
+{% endfor %}
+{% endif %}
+{% endif %}
+
+{# ================================================================ #}
+{#  CHECKS PENDING ADDITIONAL DOCUMENTS                              #}
+{# ================================================================ #}
+{% if has_pending_doc_checks %}
+<h2>Checks Pending Additional Documents</h2>
+<div class="attention-item info">
+  <div class="item-body">
+    Some verification checks could not yet be completed because the required supporting documents were not provided. These are <strong>not</strong> treated as confirmed failures and will be reviewed once the missing documents are received.
+  </div>
+</div>
+<p style="font-size: 12px; color: var(--muted); margin: 8px 0 0;">
+  The following checks are awaiting additional documents:
+</p>
+<ul style="font-size: 13px; margin: 6px 0 0 18px; padding: 0;">
+  {% for missing in completeness.missing_documents %}
+    {% set label = doc_labels.get(missing, missing.value if missing.value is defined else missing) %}
+    <li>Any check requiring the {{ label }}</li>
+  {% endfor %}
+</ul>
+{% endif %}
+
+{# ================================================================ #}
+{#  SUCCESSFULLY VERIFIED                                            #}
+{# ================================================================ #}
+{% if ns.verified_count > 0 %}
+<h2>Successfully Verified</h2>
+<ul class="verified-list">
+  {% if ns.received_count > 0 %}
+  <li><span class="check-icon">&#10003;</span> {{ ns.received_count }} of {{ ns.total_required }} required documents have been received.</li>
+  {% endif %}
+
+  {% if report.extraction_summary.auto_verified > 0 %}
+  <li><span class="check-icon">&#10003;</span> {{ report.extraction_summary.auto_verified }} information field{{ 's' if report.extraction_summary.auto_verified != 1 else '' }} extracted and verified automatically.</li>
+  {% endif %}
+
+  {% if report.extraction_summary.human_corrected > 0 %}
+  <li><span class="check-icon">&#10003;</span> {{ report.extraction_summary.human_corrected }} information field{{ 's' if report.extraction_summary.human_corrected != 1 else '' }} confirmed or corrected by a reviewer.</li>
+  {% endif %}
+
+  {% if report.visual_detection_summary.signature_detected > 0 %}
+  <li><span class="check-icon">&#10003;</span> {{ report.visual_detection_summary.signature_detected }} signature{{ 's' if report.visual_detection_summary.signature_detected != 1 else '' }} detected and verified.</li>
+  {% endif %}
+
+  {% if report.visual_detection_summary.stamp_detected > 0 %}
+  <li><span class="check-icon">&#10003;</span> {{ report.visual_detection_summary.stamp_detected }} stamp{{ 's' if report.visual_detection_summary.stamp_detected != 1 else '' }} detected and verified.</li>
+  {% endif %}
+
+  {% if report.rule_summary.passed > 0 %}
+  <li><span class="check-icon">&#10003;</span> {{ report.rule_summary.passed }} additional validation check{{ 's' if report.rule_summary.passed != 1 else '' }} passed successfully.</li>
+  {% endif %}
+</ul>
+{% endif %}
+
+{# ================================================================ #}
+{#  ADDITIONAL MANUAL REVIEW REQUIRED                                #}
+{# ================================================================ #}
+{% if has_review_items %}
+<h2>Additional Manual Review Required</h2>
+<p style="font-size: 13px; margin: 0 0 8px;">
+  Some checks require confirmation by an authorized reviewer because they cannot be reliably determined automatically:
+</p>
+<ul class="verified-list">
+  {% for rec in ns_rec.review_items %}
+  <li>
+    <span class="check-icon" style="color: var(--pending);">&#9202;</span>
+    <span>
+      {% if rec.code == 'CORRECT_LOW_CONFIDENCE' %}
+        Some extracted information requires manual verification for accuracy.
+      {% elif rec.code == 'REVIEW_DATES' %}
+        Date information across documents requires manual verification.
+      {% elif rec.code == 'VERIFY_BLURRED_DOCUMENTS' %}
+        Some document pages may have quality issues that require manual review.
+      {% else %}
+        {{ rec.message }}
+      {% endif %}
+    </span>
+  </li>
+  {% endfor %}
+  {% if ns.pending_count > 0 %}
+  <li>
+    <span class="check-icon" style="color: var(--pending);">&#9202;</span>
+    {{ ns.pending_count }} additional item{{ 's' if ns.pending_count != 1 else '' }} requiring manual verification by the reviewing team.
+  </li>
+  {% endif %}
+</ul>
+{% endif %}
+
+{# ================================================================ #}
+{#  WHAT YOU NEED TO DO                                              #}
+{# ================================================================ #}
+{% if has_any_action %}
+<h2>What You Need to Do</h2>
+<div class="next-steps">
+
+  {# Step 1: Missing documents #}
+  {% if ns.missing_count > 0 %}
+  <div class="step-group">
+    <div class="step-label">1. Provide the Missing Documents</div>
+    <p style="font-size: 12px; color: var(--muted); margin: 4px 0 6px;">
+      Please provide the following documents to continue the review process:
+    </p>
+    <ol>
+      {% for missing in completeness.missing_documents %}
+      <li>{{ doc_labels.get(missing, missing.value if missing.value is defined else missing) }}</li>
+      {% endfor %}
+    </ol>
+  </div>
+  {% endif %}
+
+  {# Step 2: Confirm/correct information #}
+  {% if ns_rec.info_issues | length > 0 or ns_rec.sig_stamp_issues | length > 0 %}
+  <div class="step-group">
+    <div class="step-label">{% if ns.missing_count > 0 %}2{% else %}1{% endif %}. Confirm or Correct the Following</div>
+    <ul style="margin: 6px 0 0 18px; padding: 0;">
+      {% set ns_action = namespace(has_iban_action=false) %}
+      {% for rec in ns_rec.info_issues %}
+        {% if rec.code in ['IBAN_INCONSISTENCY', 'ACCOUNT_NUMBER_INCONSISTENCY'] and not ns_action.has_iban_action %}
+        <li>Verify the account number and IBAN against the Account Maintenance Certificate</li>
+        {% set ns_action.has_iban_action = true %}
+        {% elif rec.code == 'HOLDER_INCONSISTENCY' %}
+        <li>Verify the account holder name against the Account Maintenance Certificate</li>
+        {% elif rec.code == 'PERIOD_INCONSISTENCY' %}
+        <li>Verify statement dates across all submitted documents</li>
+        {% elif rec.code == 'BALANCE_RECONCILIATION' %}
+        <li>Verify account balance information against the original documents</li>
+        {% endif %}
+      {% endfor %}
+      {% for rec in ns_rec.sig_stamp_issues %}
+        {% if rec.code == 'MISSING_SIGNATURE' %}
+        <li>Ensure all required documents are signed</li>
+        {% elif rec.code == 'MISSING_STAMP' %}
+        <li>Ensure all required documents bear the official stamp</li>
+        {% endif %}
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+
+  {# Step 3: Await review #}
+  {% if has_review_items %}
+  <div class="step-group">
+    <div class="step-label">{% if ns.missing_count > 0 and (ns_rec.info_issues | length > 0 or ns_rec.sig_stamp_issues | length > 0) %}3{% elif ns.missing_count > 0 or (ns_rec.info_issues | length > 0 or ns_rec.sig_stamp_issues | length > 0) %}2{% else %}1{% endif %}. Allow Additional Review</div>
+    <p style="font-size: 12px; color: var(--muted); margin: 4px 0 0;">
+      Some verification items will be completed by the reviewing team. You will be notified once the review is complete.
+    </p>
+  </div>
+  {% endif %}
+
+</div>
+{% endif %}
+
+{# ================================================================ #}
+{#  REVIEWER COMMENTS                                                #}
+{# ================================================================ #}
+<h2>Reviewer Comments</h2>
+<div class="comments-box">
+  {{ reviewer_comment | e | replace('\n', '<br>' | safe) }}
+</div>
+
+{# ================================================================ #}
+{#  FOOTER                                                           #}
+{# ================================================================ #}
+<div class="footer">
+  <div class="important">
+    <strong>Important:</strong> This report identifies items requiring attention based on the documents currently available.
+    Items marked as pending or requiring additional documentation are <strong>not</strong> considered confirmed failures and may be reassessed when the requested information is provided.
+  </div>
+  Document Validation Report &middot; Application #{{ report.application.application_id }} &middot;
+  Generated {{ report.generated_at.strftime("%B %d, %Y") }}<br>
+  For questions or clarification regarding the requested documents, please contact your designated relationship manager.
+</div>
+
+</body>
+</html>

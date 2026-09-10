@@ -1,0 +1,55 @@
+/*
+ * Decorative login background.
+ *
+ * The container always paints a theme-aware navy/blue gradient (the fallback),
+ * the video sits on top when it plays, and a subtle brand-tinted overlay sits
+ * above both. The layer is absolute within the auth wrap, behind the opaque
+ * card, and ignores pointer events so the form is never blocked. Mobile keeps
+ * the existing card-only behaviour, so the layer is hidden below 480px.
+ */
+
+.container {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  background: linear-gradient(
+    160deg,
+    var(--color-primary-dark) 0%,
+    var(--color-primary-dark) 42%,
+    var(--color-bg) 100%
+  );
+}
+
+.video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 1;
+}
+
+.overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--color-primary-dark) 20%, transparent) 0%,
+    color-mix(in srgb, var(--color-primary-dark) 4%, transparent) 100%
+  );
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .video {
+    display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .container {
+    display: none;
+  }
+}

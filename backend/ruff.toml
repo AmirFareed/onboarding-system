@@ -1,0 +1,32 @@
+target-version = "py312"
+line-length = 100
+
+[lint]
+# Matches the rule set already validated against this codebase (foundation
+# audit, Section 9). Pre-existing structural findings suppressed below —
+# all triaged, all pre-existing, none introduced by feature work.
+select = ["E", "F", "I", "UP", "B", "SIM", "C4", "DTZ", "PLR", "RUF", "BLE", "ISC", "PYI"]
+ignore = [
+    "PLR0124",  # value != value is the standard NaN-check idiom, not a bug
+    # -- Pre-existing structural findings (foundation audit triaged) --------
+    "B008",     # Depends() / Query() in FastAPI route defaults — framework convention
+    "DTZ007",   # datetime.strptime without zone — test fixtures, not production timestamps
+    "DTZ011",   # call-date-today — deliberate in seed/status code
+    "E501",     # line-too-long — comments, docstrings, existing long expressions
+    "PLR0911",  # too-many-return-statements — complex business logic, multi-path returns
+    "PLR0912",  # too-many-branches — complex business logic
+    "PLR0913",  # too-many-arguments — FastAPI route params, service constructors
+    "PLR0915",  # too-many-statements — complex orchestration functions
+    "PLR0917",  # too-many-positional-arguments — FastAPI and service signatures
+    "PLR2004",  # magic-value-comparison — business constants, thresholds, test assertions
+    "RUF001",   # ambiguous-unicode-character-string — intentional in OCR/Unicode context
+    "RUF012",   # mutable-class-default — Pydantic model fields
+]
+
+[lint.per-file-ignores]
+# Deliberate defensive isolation (a broad `except Exception` here must never
+# take down the caller) -- see CONTEXT.md and the foundation audit's Section 4.
+"app/document_analysis/services.py" = ["BLE001"]
+"app/preprocessing/splitter.py" = ["BLE001"]
+# Test files: import shadowing, module ordering, broad patterns
+"tests/**" = ["E402", "F402"]

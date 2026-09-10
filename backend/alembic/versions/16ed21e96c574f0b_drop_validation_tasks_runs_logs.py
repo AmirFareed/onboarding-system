@@ -1,0 +1,147 @@
+"""Drop validation tasks, runs and logs.
+
+Removes ``validation_tasks``, ``validation_runs`` and ``validation_logs``
+(added in ``a3f9b7c1d4e2``) along with their enums. This is the ``app.validation``
+module's storage -- confirmed to have zero real callers anywhere in the
+codebase (no scheduler, no other module's service, no frontend action ever
+created a ``ValidationTask``) and superseded in practice by ``app.operator_workflow``
+(first-level triage) plus ``app.human_verification`` (final decision), which
+together already implement the real two-stage review workflow this module was
+scaffolded for but never wired into. See CONTEXT.md's 2026-08-15 finding and
+2026-08-22 addendum for the full investigation. ``validation_results``
+(``ValidationResult``, a different, unrelated table written by
+``technical_validation``/``rule_engine``) and ``validation_history``
+(``ValidationHistoryEntry``, written by ``operator_workflow``) are real, live
+tables and are not touched by this migration.
+
+Revision ID: 16ed21e96c574f0b
+Revises: d4e5f6a7b8c9d0e1
+Create Date: 2026-08-22 00:00:00.000000
+
+"""
+from typing import Sequence, Union
+
+from alembic import op
+import sqlalchemy as sa
+
+
+# revision identifiers, used by Alembic.
+revision: str = '16ed21e96c574f0b'
+down_revision: Union[str, Sequence[str], None] = 'd4e5f6a7b8c9d0e1'
+branch_labels: Union[str, Sequence[str], None] = None
+depends_on: Union[str, Sequence[str], None] = None
+
+
+def upgrade() -> None:
+    """Drop the validation task/run/log tables and their enums."""
+    op.drop_index('ix_validation_logs_validation_task_id', table_name='validation_logs')
+    op.drop_index('ix_validation_logs_validation_run_id', table_name='validation_logs')
+    op.drop_index('ix_validation_logs_task_created_at', table_name='validation_logs')
+    op.drop_index('ix_validation_logs_created_at', table_name='validation_logs')
+    op.drop_index('ix_validation_logs_check_type', table_name='validation_logs')
+    op.drop_index('ix_validation_logs_application_id', table_name='validation_logs')
+    op.drop_index('ix_validation_logs_action', table_name='validation_logs')
+    op.drop_table('validation_logs')
+
+    op.drop_index('ix_validation_tasks_status', table_name='validation_tasks')
+    op.drop_index('ix_validation_tasks_queue', table_name='validation_tasks')
+    op.drop_index('ix_validation_tasks_priority', table_name='validation_tasks')
+    op.drop_index('ix_validation_tasks_created_at', table_name='validation_tasks')
+    op.drop_index('ix_validation_tasks_application_id', table_name='validation_tasks')
+    op.drop_table('validation_tasks')
+
+    op.drop_index('ix_validation_runs_application_id', table_name='validation_runs')
+    op.drop_table('validation_runs')
+
+    sa.Enum(name='validationlogresult').drop(op.get_bind(), checkfirst=True)
+    sa.Enum(name='validationlogchecktype').drop(op.get_bind(), checkfirst=True)
+    sa.Enum(name='validationlogaction').drop(op.get_bind(), checkfirst=True)
+    sa.Enum(name='validationtaskpriority').drop(op.get_bind(), checkfirst=True)
+    sa.Enum(name='validationtaskstatus').drop(op.get_bind(), checkfirst=True)
+
+
+def downgrade() -> None:
+    """Recreate the validation task/run/log tables and their enums."""
+    validationtaskstatus = sa.Enum(
+        'PENDING', 'IN_REVIEW', 'NEEDS_CORRECTION', 'VALIDATED', 'REJECTED',
+        name='validationtaskstatus',
+    )
+    validationtaskpriority = sa.Enum(
+        'LOW', 'NORMAL', 'HIGH', 'URGENT',
+        name='validationtaskpriority',
+    )
+    validationlogaction = sa.Enum(
+        'TASK_CREATED', 'TASK_STARTED', 'FIELD_VERIFIED', 'FIELD_CORRECTED',
+        'BUSINESS_RULE_REVIEWED', 'SIGNATURE_REVIEWED', 'STAMP_REVIEWED',
+        'ORIGINALITY_REVIEWED', 'DOCUMENT_REVIEWED', 'CORRECTION_REQUESTED',
+        'VALIDATION_COMPLETED', 'VALIDATION_REJECTED', 'REVALIDATION_STARTED',
+        name='validationlogaction',
+    )
+    validationlogchecktype = sa.Enum(
+        'ACCOUNT_NUMBER', 'NTN', 'BANK_NAME', 'ACCOUNT_TITLE', 'SIGNATURE',
+        'STAMP', 'BUSINESS_RULE', 'BANK_MAINTENANCE_ORIGINALITY',
+        'DOCUMENT_REVIEW', 'GENERAL',
+        name='validationlogchecktype',
+    )
+    validationlogresult = sa.Enum(
+        'PASS', 'FAIL', 'CONFIRMED', 'CORRECTED', 'REQUIRES_REVIEW', 'REJECTED',
+        'REVIEWED', 'INFO',
+        name='validationlogresult',
+    )
+
+    op.create_table('validation_runs',
+    sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
+    sa.Column('application_id', sa.Integer(), nullable=False),
+    sa.Column('run_number', sa.Integer(), nullable=False),
+    sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+    sa.ForeignKeyConstraint(['application_id'], ['applications.id'], name=op.f('fk_validation_runs_applications_application_id'), ondelete='CASCADE'),
+    sa.PrimaryKeyConstraint('id', name=op.f('pk_validation_runs')),
+    sa.UniqueConstraint('application_id', 'run_number', name=op.f('uq_validation_runs_application_id_run_number'))
+    )
+    op.create_index('ix_validation_runs_application_id', 'validation_runs', ['application_id'], unique=False)
+
+    op.create_table('validation_tasks',
+    sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
+    sa.Column('application_id', sa.Integer(), nullable=False),
+    sa.Column('status', validationtaskstatus, server_default=sa.text("'PENDING'"), nullable=False),
+    sa.Column('priority', validationtaskpriority, server_default=sa.text("'NORMAL'"), nullable=False),
+    sa.Column('validation_run_id', sa.Integer(), nullable=True),
+    sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+    sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+    sa.Column('started_at', sa.DateTime(timezone=True), nullable=True),
+    sa.Column('completed_at', sa.DateTime(timezone=True), nullable=True),
+    sa.ForeignKeyConstraint(['application_id'], ['applications.id'], name=op.f('fk_validation_tasks_applications_application_id'), ondelete='CASCADE'),
+    sa.ForeignKeyConstraint(['validation_run_id'], ['validation_runs.id'], name=op.f('fk_validation_tasks_validation_runs_validation_run_id'), ondelete='SET NULL'),
+    sa.PrimaryKeyConstraint('id', name=op.f('pk_validation_tasks'))
+    )
+    op.create_index('ix_validation_tasks_application_id', 'validation_tasks', ['application_id'], unique=False)
+    op.create_index('ix_validation_tasks_created_at', 'validation_tasks', ['created_at'], unique=False)
+    op.create_index('ix_validation_tasks_priority', 'validation_tasks', ['priority'], unique=False)
+    op.create_index('ix_validation_tasks_queue', 'validation_tasks', ['status', 'priority', 'created_at'], unique=False)
+    op.create_index('ix_validation_tasks_status', 'validation_tasks', ['status'], unique=False)
+
+    op.create_table('validation_logs',
+    sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
+    sa.Column('validation_task_id', sa.Integer(), nullable=False),
+    sa.Column('application_id', sa.Integer(), nullable=False),
+    sa.Column('validation_run_id', sa.Integer(), nullable=True),
+    sa.Column('action', validationlogaction, nullable=False),
+    sa.Column('check_type', validationlogchecktype, nullable=True),
+    sa.Column('field_name', sa.Text(), nullable=True),
+    sa.Column('previous_value', sa.Text(), nullable=True),
+    sa.Column('new_value', sa.Text(), nullable=True),
+    sa.Column('result', validationlogresult, nullable=True),
+    sa.Column('reason', sa.Text(), nullable=True),
+    sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+    sa.ForeignKeyConstraint(['application_id'], ['applications.id'], name=op.f('fk_validation_logs_applications_application_id'), ondelete='CASCADE'),
+    sa.ForeignKeyConstraint(['validation_run_id'], ['validation_runs.id'], name=op.f('fk_validation_logs_validation_runs_validation_run_id'), ondelete='SET NULL'),
+    sa.ForeignKeyConstraint(['validation_task_id'], ['validation_tasks.id'], name=op.f('fk_validation_logs_validation_tasks_validation_task_id'), ondelete='CASCADE'),
+    sa.PrimaryKeyConstraint('id', name=op.f('pk_validation_logs'))
+    )
+    op.create_index('ix_validation_logs_action', 'validation_logs', ['action'], unique=False)
+    op.create_index('ix_validation_logs_application_id', 'validation_logs', ['application_id'], unique=False)
+    op.create_index('ix_validation_logs_check_type', 'validation_logs', ['check_type'], unique=False)
+    op.create_index('ix_validation_logs_created_at', 'validation_logs', ['created_at'], unique=False)
+    op.create_index('ix_validation_logs_task_created_at', 'validation_logs', ['validation_task_id', 'created_at'], unique=False)
+    op.create_index('ix_validation_logs_validation_run_id', 'validation_logs', ['validation_run_id'], unique=False)
+    op.create_index('ix_validation_logs_validation_task_id', 'validation_logs', ['validation_task_id'], unique=False)

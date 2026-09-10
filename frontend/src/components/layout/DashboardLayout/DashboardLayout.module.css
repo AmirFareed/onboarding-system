@@ -1,0 +1,69 @@
+.shell {
+  min-height: 100%;
+}
+
+/* Sidebar variants ----------------------------------------------------------- */
+
+/* Desktop: fixed, full-width sidebar pushes the main region right. */
+.main {
+  margin-left: var(--sidebar-width);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  transition: margin-left var(--transition);
+}
+
+/* Desktop: collapsed rail reserves the rail width. */
+.sidebarCompact {
+  margin-left: var(--sidebar-width-collapsed);
+}
+
+/* Tablet: keep room for the expanded rail by default. */
+.sidebarVisible {
+  margin-left: var(--sidebar-width-collapsed);
+}
+
+/* Tablet: the collapsed rail needs no reserved space. */
+.sidebarCollapsed {
+  margin-left: 0;
+}
+
+/* Mobile: the sidebar is off-canvas so the content spans the full width. */
+@media (max-width: 767px) {
+  .main,
+  .sidebarVisible,
+  .sidebarCollapsed,
+  .sidebarCompact {
+    margin-left: 0;
+  }
+}
+
+/* Content region -------------------------------------------------------------- */
+.content {
+  flex: 1;
+  padding: 24px;
+}
+
+@media (max-width: 767px) {
+  .content {
+    padding: 16px;
+  }
+}
+
+/* Backdrop shown behind the mobile drawer ------------------------------------- */
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 35;
+  background: rgba(31, 41, 55, 0.4);
+  animation: fadeIn var(--transition);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}

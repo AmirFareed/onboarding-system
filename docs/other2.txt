@@ -1,0 +1,35 @@
+check list
+
+authority should be on department letter head(signed and stamp) focal person name and designation
+account maintenance should be on top of authority letter(format important)(signed and stamp)
+application from(should be filled if not NA)(tik the catogory)(head info should be filled)
+aggregator section(kpitb section)
+sub billers organization on boarding with kpitb 
+no dates in first 2 line
+name of every organization
+
+bullet 2 sub point 5 bank details account number, title sjould as per account maintenance
+numbers(bullet)should be complete(details of document)
+signatures and witness from 3 parties
+
+
+bilateral-> paymir and digital muhasil should be mentioned
+
+text should be as it is
+dates should be empty
+
+section 5.2-> transaction should be mentioned and prevailing(in pkr)
+2 bullets points are imp
+bilateral account number in sec6 should also same
+
+party b -> name designation and witness should be same
+business requirement document:
+it should have services
+
+subject: on boarding as a sub biller for kpitb
+this document imp
+
+
+
+cnic imp
+

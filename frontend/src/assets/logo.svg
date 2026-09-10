@@ -1,0 +1,11 @@
+<svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="40" height="40" rx="12" fill="url(#fintech-brand)"/>
+  <path d="M12 13h16v14a2 2 0 0 1-2 2H14a2 2 0 0 1-2-2V13z" fill="#FFFFFF"/>
+  <path d="M15 19h10M15 24h7" stroke="#5AB4F0" stroke-width="2" stroke-linecap="round"/>
+  <defs>
+    <linearGradient id="fintech-brand" x1="0" y1="0" x2="40" y2="40">
+      <stop stop-color="#5AB4F0"/>
+      <stop offset="1" stop-color="#1E64A0"/>
+    </linearGradient>
+  </defs>
+</svg>

@@ -1,0 +1,424 @@
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.blockingSection {
+  padding: 12px 16px;
+  border-radius: var(--radius-md);
+  border-left: 3px solid var(--color-danger);
+  background: color-mix(in srgb, var(--color-danger) 8%, var(--color-card));
+}
+
+.blockingHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.blockingIcon {
+  width: 16px;
+  height: 16px;
+  color: var(--color-danger);
+  flex-shrink: 0;
+}
+
+.blockingTitle {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-danger);
+}
+
+.blockingList {
+  list-style: disc;
+  margin: 0;
+  padding-left: 20px;
+  font-size: 13px;
+  color: var(--color-text);
+}
+
+.blockingList li {
+  margin-bottom: 4px;
+}
+
+.blockingList li:last-child {
+  margin-bottom: 0;
+}
+
+.decisions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.option {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px 16px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-card);
+  cursor: pointer;
+  transition: border-color var(--transition), box-shadow var(--transition);
+}
+
+.optionActive {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--focus-ring);
+}
+
+.radio {
+  accent-color: var(--color-primary);
+}
+
+.optionLabel {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.optionDescription {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+/* Conditional Approval form */
+.conditionalForm {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--color-primary) 5%, var(--color-card));
+}
+
+.conditionalField {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.conditionalLabel {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.conditionalTextarea {
+  padding: 10px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-card);
+  color: var(--color-text);
+  font-size: 13px;
+  resize: vertical;
+  font-family: inherit;
+}
+
+.conditionalTextarea:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--focus-ring);
+}
+
+.conditionalDate {
+  padding: 8px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-card);
+  color: var(--color-text);
+  font-size: 13px;
+  width: fit-content;
+}
+
+.conditionalDate:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--focus-ring);
+}
+
+.missingDocsAction {
+  display: flex;
+}
+
+.missingDocsBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  background: transparent;
+  color: var(--color-primary-dark);
+  border: 1px solid var(--color-primary);
+  transition: background-color var(--transition);
+}
+
+.missingDocsBtn:hover {
+  background: color-mix(in srgb, var(--color-primary) 10%, transparent);
+}
+
+.missingDocsBtn svg {
+  width: 14px;
+  height: 14px;
+}
+
+.correctionsSummary {
+  padding: 10px 14px;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.correctionsTitle {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text);
+  display: block;
+  margin-bottom: 6px;
+}
+
+.correctionsList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.correctionItem {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  padding: 2px 0;
+}
+
+.correctionField {
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.correctionValue {
+  margin-left: 4px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.fieldLabel {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.textarea {
+  padding: 10px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-card);
+  color: var(--color-text);
+  font-size: 13px;
+  resize: vertical;
+  font-family: inherit;
+}
+
+.textarea:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--focus-ring);
+}
+
+.reason {
+  border-color: var(--color-danger);
+}
+
+.validationError,
+.submitError {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 12px 16px;
+  border-radius: var(--radius-md);
+  border-left: 3px solid var(--color-danger);
+  background: color-mix(in srgb, var(--color-danger) 10%, var(--color-card));
+  color: var(--color-text);
+  font-size: 13px;
+}
+
+.errorIcon {
+  width: 16px;
+  height: 16px;
+  color: var(--color-danger);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.submitBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 22px;
+  border-radius: var(--radius-md);
+  background: var(--color-primary);
+  color: #fff;
+  border: none;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  align-self: flex-start;
+  transition: background-color var(--transition);
+}
+
+.submitBtn:hover:not(:disabled) {
+  background: var(--color-primary-dark);
+}
+
+.submitBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.submitIcon {
+  width: 16px;
+  height: 16px;
+}
+
+/* Modal */
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal {
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  width: 90%;
+  max-width: 480px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.modalHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.modalTitle {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-text);
+  margin: 0;
+}
+
+.modalClose {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-sm);
+  border: none;
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+.modalClose:hover {
+  background: var(--color-bg);
+}
+
+.modalClose svg {
+  width: 16px;
+  height: 16px;
+}
+
+.modalBody {
+  padding: 16px 20px;
+}
+
+.modalDescription {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  margin: 0 0 12px;
+}
+
+.modalDocList {
+  list-style: disc;
+  margin: 0;
+  padding-left: 20px;
+}
+
+.modalDocItem {
+  font-size: 13px;
+  color: var(--color-text);
+  padding: 4px 0;
+}
+
+.modalActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 12px 20px;
+  border-top: 1px solid var(--color-border);
+}
+
+.modalCancel {
+  padding: 8px 16px;
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  background: transparent;
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border);
+}
+
+.modalCancel:hover {
+  background: var(--color-bg);
+}
+
+.modalConfirm {
+  padding: 8px 16px;
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  background: var(--color-primary);
+  color: #fff;
+  border: none;
+}
+
+.modalConfirm:hover {
+  background: var(--color-primary-dark);
+}
+
+@media (max-width: 767px) {
+  .decisions {
+    grid-template-columns: 1fr;
+  }
+
+  .submitBtn {
+    width: 100%;
+  }
+
+  .modal {
+    width: 95%;
+  }
+}

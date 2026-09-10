@@ -1,0 +1,223 @@
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* --- Dual status --- */
+.statusBar {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.statusBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 18px;
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  flex: 1;
+  min-width: 200px;
+}
+
+.statusLabel {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* --- Layer A: outcome cards --- */
+.outcomeGrid {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.outcomeCard {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 14px 18px;
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  flex: 1;
+  min-width: 130px;
+  border-left: 3px solid transparent;
+}
+
+.outcomeCard_danger {
+  border-left-color: var(--color-danger);
+}
+
+.outcomeCard_warning {
+  border-left-color: var(--color-warning);
+}
+
+.outcomeCard_info {
+  border-left-color: var(--color-primary);
+}
+
+.outcomeCard_success {
+  border-left-color: var(--color-success);
+}
+
+.outcomeValue {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--color-text);
+  line-height: 1.1;
+}
+
+.outcomeCard_danger .outcomeValue {
+  color: var(--color-danger);
+}
+
+.outcomeCard_warning .outcomeValue {
+  color: #b45309;
+}
+
+.outcomeCard_info .outcomeValue {
+  color: var(--color-primary-dark);
+}
+
+.outcomeCard_success .outcomeValue {
+  color: var(--color-success);
+}
+
+.outcomeLabel {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  font-weight: 600;
+}
+
+/* --- Layer B: completeness --- */
+.completenessBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 18px;
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+}
+
+.blockTitle {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.completenessRow {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.completenessValue {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.completenessPercent {
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.progressTrack {
+  height: 6px;
+  background: var(--color-bg);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  background: var(--color-success);
+  border-radius: 3px;
+  transition: width var(--transition);
+}
+
+/* --- Layer C: breakdown --- */
+.breakdownBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 18px;
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+}
+
+.breakdownBar {
+  display: flex;
+  height: 8px;
+  border-radius: 4px;
+  overflow: hidden;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+}
+
+.segment {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  transition: width var(--transition);
+}
+
+.segment_success {
+  background: var(--color-success);
+}
+
+.segment_danger {
+  background: var(--color-danger);
+}
+
+.segment_warning {
+  background: var(--color-warning);
+}
+
+.segment_info {
+  background: var(--color-primary);
+}
+
+.segment_neutral {
+  background: var(--color-text-muted);
+  opacity: 0.4;
+}
+
+.segmentLabel {
+  font-size: 9px;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1;
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.legendItem {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+@media (max-width: 767px) {
+  .statusBar {
+    flex-direction: column;
+  }
+
+  .outcomeGrid {
+    flex-direction: column;
+  }
+}

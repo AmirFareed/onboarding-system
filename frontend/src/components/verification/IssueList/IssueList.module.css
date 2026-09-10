@@ -1,0 +1,141 @@
+.section {
+  margin-top: 24px;
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-text);
+  margin: 0;
+}
+
+.count {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+.group {
+  margin-bottom: 14px;
+}
+
+.groupTitle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0 0 8px;
+}
+
+.groupTitle svg {
+  width: 16px;
+  height: 16px;
+}
+
+.critical {
+  color: var(--color-danger);
+}
+
+.warning {
+  color: #b45309;
+}
+
+.review {
+  color: var(--color-text);
+}
+
+:root[data-theme='dark'] .warning {
+  color: #fbbf24;
+}
+
+.groupEmpty {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 10px 14px;
+  font-size: 13px;
+  color: var(--color-text-muted);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.groupEmpty svg {
+  width: 16px;
+  height: 16px;
+  color: var(--color-success);
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-card);
+}
+
+.itemHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.itemName {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.itemMessage {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+.documents {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.documentTag {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: var(--color-primary-light);
+  color: var(--color-primary-dark);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+@media (max-width: 767px) {
+  .sectionHeader {
+    flex-direction: column;
+    gap: 4px;
+  }
+}

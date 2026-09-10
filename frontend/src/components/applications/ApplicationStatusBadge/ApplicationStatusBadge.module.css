@@ -1,0 +1,67 @@
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.blue {
+  background: var(--color-primary-light);
+  color: var(--color-primary-dark);
+}
+
+.sky {
+  background: rgba(14, 165, 233, 0.14);
+  color: #0284c7;
+}
+
+.orange {
+  background: rgba(245, 158, 11, 0.14);
+  color: #b45309;
+}
+
+.green {
+  background: rgba(22, 163, 74, 0.12);
+  color: var(--color-success);
+}
+
+.red {
+  background: rgba(220, 38, 38, 0.12);
+  color: var(--color-danger);
+}
+
+.purple {
+  background: rgba(124, 58, 237, 0.12);
+  color: #7c3aed;
+}
+
+.rose {
+  background: rgba(225, 29, 72, 0.12);
+  color: #be123c;
+}
+
+.gray {
+  background: var(--color-bg);
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border);
+}
+
+:root[data-theme='dark'] .sky {
+  color: #38bdf8;
+}
+
+:root[data-theme='dark'] .orange {
+  color: #fbbf24;
+}
+
+:root[data-theme='dark'] .purple {
+  color: #a78bfa;
+}
+
+:root[data-theme='dark'] .rose {
+  color: #fb7185;
+}

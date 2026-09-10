@@ -1,0 +1,496 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  max-width: 960px;
+  margin: 0 auto;
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.headerTitle {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.headerIcon {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-primary-light);
+  color: var(--color-primary-dark);
+  flex-shrink: 0;
+}
+
+.headerIcon svg {
+  width: 22px;
+  height: 22px;
+}
+
+.title {
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--color-text);
+}
+
+.subtitle {
+  margin-top: 4px;
+  font-size: 14px;
+  color: var(--color-text-muted);
+}
+
+.card {
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+}
+
+.cardHeader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.cardIcon {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-primary-light);
+  color: var(--color-primary-dark);
+  flex-shrink: 0;
+}
+
+.cardIcon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.cardTitleWrap {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.cardTitle {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.cardDescription {
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.restricted {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-warning);
+  background: color-mix(in srgb, var(--color-warning) 12%, transparent);
+  padding: 4px 10px;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+
+.loadingWrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 56px 0;
+}
+
+.loadingText {
+  margin: 0;
+  font-size: 14px;
+  color: var(--color-text-muted);
+}
+
+/* Profile */
+.profileHeader {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px;
+}
+
+.avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-primary);
+  color: #fff;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  flex-shrink: 0;
+}
+
+.profileMeta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.profileName {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.profileRole {
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.details {
+  margin: 0;
+  padding: 0 20px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.detailRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  font-size: 14px;
+  border-top: 1px solid var(--color-border);
+}
+
+.detailRow dt {
+  width: 140px;
+  flex-shrink: 0;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.detailRow dd {
+  margin: 0;
+  min-width: 0;
+  color: var(--color-text);
+}
+
+.detailValueRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.detailValue {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.copyBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: color var(--transition), border-color var(--transition), background-color var(--transition);
+}
+
+.copyBtn:hover {
+  color: var(--color-primary-dark);
+  border-color: var(--color-primary-dark);
+  background: var(--color-primary-light);
+}
+
+.copyBtn:focus-visible {
+  outline: 2px solid var(--color-primary-light);
+  outline-offset: 2px;
+}
+
+.copyBtn svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* Preferences */
+.preferenceList {
+  display: flex;
+  flex-direction: column;
+}
+
+.storageNote {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 12px 20px;
+  border-top: 1px dashed var(--color-border);
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.storageNote svg {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+
+/* Account & session */
+.accountBody {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.accountInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.accountRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 14px;
+}
+
+.accountLabel {
+  width: 140px;
+  flex-shrink: 0;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.accountValue {
+  color: var(--color-text);
+}
+
+.signOutWrap {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 14px;
+  padding-top: 16px;
+  border-top: 1px solid var(--color-border);
+}
+
+.bodyHint {
+  margin: 0;
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.signOutBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 42px;
+  padding: 10px 22px;
+  border-radius: var(--radius-md);
+  background: var(--color-danger);
+  color: #fff;
+  border: none;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color var(--transition), opacity var(--transition);
+}
+
+.signOutBtn:hover {
+  background: color-mix(in srgb, var(--color-danger) 85%, #000 15%);
+}
+
+.signOutBtn:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.signOutBtn svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* Security */
+.securityBody {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 20px;
+}
+
+.securityIcon {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-success);
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.securityIcon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.securityText {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.securityTitle {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.securityDescription {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+}
+
+/* Administration */
+.adminList {
+  list-style: none;
+  margin: 0;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.adminLink {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border-radius: var(--radius-md);
+  text-decoration: none;
+  transition: background-color var(--transition);
+}
+
+.adminLink:hover {
+  background-color: var(--color-primary-light);
+}
+
+.adminLink:focus-visible {
+  outline: 2px solid var(--color-primary-light);
+  outline-offset: 2px;
+}
+
+.adminIcon {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-primary-light);
+  color: var(--color-primary-dark);
+  flex-shrink: 0;
+}
+
+.adminIcon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.adminMeta {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.adminLabel {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.adminHint {
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.adminArrow {
+  width: 18px;
+  height: 18px;
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+
+@media (max-width: 640px) {
+  .headerIcon {
+    width: 38px;
+    height: 38px;
+  }
+
+  .detailRow,
+  .accountRow {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 3px;
+  }
+
+  .detailRow dt,
+  .accountLabel {
+    width: auto;
+  }
+
+  .profileHeader {
+    padding: 16px;
+  }
+
+  .details {
+    padding: 0 16px 14px;
+  }
+
+  .cardHeader {
+    padding: 14px 16px;
+  }
+
+  .signOutBtn {
+    width: 100%;
+  }
+}
