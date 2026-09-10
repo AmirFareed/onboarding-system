@@ -172,10 +172,17 @@ def get_validation_report_pdf(
     application = service._get_application(application_id)
     pdf_bytes = service.render_pdf(application_id=application_id)
 
-    app_name = (application.name or f"Application-{application_id}").replace(
+    # The downloaded filename is the application's own name (e.g. "TMA Lal
+    # Qilla Dir Lower.pdf"), by explicit request -- not a composite with
+    # "Validation-Report-{id}" appended. `.strip()` before replacing spaces
+    # matters: application.name is derived from an uploaded PDF's filename
+    # stem (see UploadService._display_name_from), which routinely carries a
+    # trailing space from real filenames like "TMA Khal Dir Lower .pdf" --
+    # without stripping first, that trailing space becomes a trailing dash.
+    app_name = (application.name or f"Application-{application_id}").strip().replace(
         " ", "-"
     )
-    filename = f"{app_name}-Validation-Report-{application_id}.pdf"
+    filename = f"{app_name}.pdf"
 
     return Response(
         content=pdf_bytes,

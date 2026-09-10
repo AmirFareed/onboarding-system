@@ -440,6 +440,42 @@ def test_report_pdf_download(authenticated_client, storage_root):
     assert response.headers["content-type"] == "application/pdf"
     assert response.content[:5] == b"%PDF-"
     assert len(response.content) > 1000
+    # Downloaded filename is the application's own name, not a composite
+    # with "Validation-Report-{id}" appended (changed 2026-09-10 by request).
+    disposition = response.headers["content-disposition"]
+    assert "Validation-Report" not in disposition
+    assert disposition.endswith('.pdf"')
+
+
+def test_report_pdf_filename_trims_trailing_space_from_application_name(
+    authenticated_client, storage_root
+):
+    """Regression test: application.name is derived from an uploaded PDF's
+    filename stem (UploadService._display_name_from), which routinely
+    carries a trailing space from real filenames like "TMA Khal Dir Lower
+    .pdf". Without stripping before replacing spaces with dashes, that
+    trailing space became a trailing dash, producing a double dash once
+    joined with the (now-removed) "-Validation-Report-{id}" suffix -- e.g.
+    "TMA-Lal-Qilla-Dir-Lower--Validation-Report-20.pdf". Confirmed on a real
+    application during manual testing, not hypothetical.
+    """
+    application_id = create_application(authenticated_client)
+    db = SessionLocal()
+    try:
+        repository = ApplicationRepository(db)
+        application = repository.get_by_id(application_id)
+        application.name = "My Test Application "
+        db.add(application)
+        db.commit()
+    finally:
+        db.close()
+
+    response = get_report(authenticated_client, application_id, url=PDF_URL)
+
+    assert response.status_code == 200, response.text
+    disposition = response.headers["content-disposition"]
+    assert 'filename="My-Test-Application.pdf"' in disposition
+    assert "--" not in disposition
 
 
 # --- Error paths -------------------------------------------------------------
