@@ -460,6 +460,20 @@ drawer with backdrop on mobile.
 - **Authentication**: bcrypt-hashed passwords; short-lived JWT access cookie
   plus rotating, revocable refresh cookie; 401 handling transparently refreshes
   and replays requests.
+- **Development-only login/role bypass**: when `ENVIRONMENT=development`
+  (the local default — see Configuration below), the backend skips the
+  login cookie entirely and resolves every request as the seeded `EMPLOYEE`
+  account, and every role guard (`require_role`/`require_exact_role` in
+  `backend/app/auth/dependencies.py`) passes unconditionally — so running
+  the app locally opens straight to the dashboard with every page reachable,
+  no login screen, no role restrictions. This is scoped strictly to that one
+  environment value: `ENVIRONMENT=testing` and `ENVIRONMENT=production`
+  enforce the real cookie/role model described above unchanged — nothing
+  about the actual authorization code itself changes, and a production
+  deployment is unaffected. See `CLAUDE.md` for the full role model (`EMPLOYEE`/
+  `OPERATOR`/`REVIEWER`/`IT`) and `frontend/src/utils/roles.js`'s
+  matching `MODE === 'development'` check for the frontend half (nav
+  visibility only; the backend guard remains the real security boundary).
 - **Uploads**: validated by extension, MIME type *and* magic-byte sniffing;
   streamed in chunks to a storage root outside the source tree
   (`storage/`, gitignored); per-type copy caps enforced server-side.
