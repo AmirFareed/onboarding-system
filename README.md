@@ -286,6 +286,25 @@ Password    : Welcome@123
 
 **`requirements.txt` vs `requirements-lock.txt`**: `requirements.txt` declares loose, compatible version ranges (the source of truth for what this project needs); `requirements-lock.txt` is a `pip-compile`-generated, fully pinned resolution of that file, committed so every install — local, CI, or production — gets the exact same dependency versions instead of whatever a range happens to resolve to on a given day. Use `pip-sync requirements-lock.txt` for installs (recommended, especially for production); regenerate the lock file with `pip-compile requirements.txt -o requirements-lock.txt` after changing `requirements.txt`, and commit both files together.
 
+**WeasyPrint on Windows needs one extra, non-`pip` step.** The PDF export
+(`GET /applications/{id}/validation-report/pdf`, the "Download PDF" button)
+uses WeasyPrint, which wraps native Pango/cairo/GTK libraries that `pip`
+cannot install — `pip install weasyprint` alone succeeds, but `import
+weasyprint` then fails on Windows with `OSError: cannot load library
+'libgobject-2.0-0'`. Install the GTK3 runtime once, system-wide:
+
+```powershell
+winget install --id tschoonj.GTKForWindows -e
+```
+
+Restart any already-running `uvicorn`/dev-launcher process afterward — a
+process only sees a system PATH update made after it started. Linux is
+unaffected by this specific issue but still needs its own native packages
+first (Debian/Ubuntu ≥ 20.04: `apt install libpango-1.0-0 libpangoft2-1.0-0
+libharfbuzz-subset0`); macOS via `brew install pango`. See WeasyPrint's own
+[install docs](https://doc.courtbouillon.org/weasyprint/stable/first_steps.html#installation)
+for other platforms.
+
 ### 3. Frontend
 
 ```bash

@@ -36,6 +36,7 @@ API = "/api/v1"
 
 REPORT_URL = "/validation-report"
 HTML_URL = "/validation-report/html"
+PDF_URL = "/validation-report/pdf"
 SUMMARY_URL = "/validation-summary"
 
 REPORT_VERSION = "1.0.0"
@@ -418,6 +419,27 @@ def test_report_is_idempotent(authenticated_client, storage_root):
     first.pop("generated_at")
     second.pop("generated_at")
     assert first == second
+
+
+def test_report_pdf_download(authenticated_client, storage_root):
+    """Regression test: render_pdf() uses WeasyPrint, which wraps native
+    Pango/cairo/GTK libraries `pip` cannot install. Two real, confirmed
+    failures, neither caught by any existing test since nothing exercised
+    this endpoint: `weasyprint` was declared in requirements.txt but
+    missing entirely from requirements-lock.txt, so `pip-sync
+    requirements-lock.txt` (the documented install command) silently never
+    installed it; and on Windows the Python package alone isn't enough
+    anyway without the separate GTK3 runtime (`OSError: cannot load
+    library 'libgobject-2.0-0'`). This closes that gap.
+    """
+    application_id = build_full_application(authenticated_client, storage_root, with_detections=True)
+
+    response = get_report(authenticated_client, application_id, url=PDF_URL)
+
+    assert response.status_code == 200, response.text
+    assert response.headers["content-type"] == "application/pdf"
+    assert response.content[:5] == b"%PDF-"
+    assert len(response.content) > 1000
 
 
 # --- Error paths -------------------------------------------------------------

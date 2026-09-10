@@ -29,11 +29,15 @@ bce-python-sdk==0.9.76
     # via aistudio-sdk
 bcrypt==4.3.0
     # via -r requirements.txt
+brotli==1.2.0
+    # via fonttools
 certifi==2026.7.22
     # via
     #   httpcore
     #   httpx
     #   requests
+cffi==2.1.1
+    # via weasyprint
 chardet==7.6.0
     # via paddlex
 charset-normalizer==3.5.1
@@ -53,6 +57,8 @@ colorlog==6.12.0
     # via paddlex
 crc32c==2.8
     # via bce-python-sdk
+cssselect2==0.10.1
+    # via weasyprint
 fastapi==0.141.1
     # via -r requirements.txt
 filelock==3.32.3
@@ -61,6 +67,8 @@ filelock==3.32.3
     #   modelscope
     #   modelscope-hub
     #   paddlex
+fonttools[woff]==4.64.0
+    # via weasyprint
 frozenlist==1.8.0
     # via
     #   aiohttp
@@ -156,6 +164,7 @@ pillow==12.3.0
     # via
     #   paddlepaddle
     #   paddlex
+    #   weasyprint
 pluggy==1.6.0
     # via pytest
 prettytable==3.18.0
@@ -178,6 +187,8 @@ py-cpuinfo==9.0.0
     # via paddlex
 pyclipper==1.4.0
     # via paddlex
+pycparser==3.0
+    # via cffi
 pycryptodome==3.23.0
     # via bce-python-sdk
 pydantic==2.13.4
@@ -190,6 +201,8 @@ pydantic-core==2.46.4
     # via pydantic
 pydantic-settings==2.15.0
     # via -r requirements.txt
+pydyf==0.12.1
+    # via weasyprint
 pygments==2.20.0
     # via pytest
 pyjwt==2.13.0
@@ -198,6 +211,8 @@ pymupdf==1.28.2
     # via -r requirements.txt
 pypdfium2==5.13.0
     # via paddlex
+pyphen==0.18.1
+    # via weasyprint
 pytest==8.4.2
     # via -r requirements.txt
 python-bidi==0.6.11
@@ -242,6 +257,12 @@ sqlalchemy==2.0.52
     #   alembic
 starlette==1.6.0
     # via fastapi
+tinycss2==1.5.1
+    # via
+    #   cssselect2
+    #   weasyprint
+tinyhtml5==2.1.0
+    # via weasyprint
 tqdm==4.70.0
     # via
     #   aistudio-sdk
@@ -288,10 +309,19 @@ watchfiles==1.2.0
     # via uvicorn
 wcwidth==0.8.2
     # via prettytable
+weasyprint==69.0
+    # via -r requirements.txt
+webencodings==0.6.1
+    # via
+    #   cssselect2
+    #   tinycss2
+    #   tinyhtml5
 websockets==17.0.1
     # via uvicorn
 yarl==1.24.5
     # via aiohttp
+zopfli==0.4.3
+    # via fonttools
 
 # The following packages are considered to be unsafe in a requirements file:
 # setuptools
