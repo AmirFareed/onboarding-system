@@ -46,6 +46,12 @@ applications, while AI/dataset management is intentionally hidden under
   front/back. Slots are numbered (`Copy 1 … Copy N`), empty slots stay visible,
   replace is scoped to its own slot, and per-category caps are enforced by the
   backend.
+- **Batch Upload PDFs** — select 30+ separate combined-PDF onboarding
+  packages at once from the Applications page; each becomes its own
+  application (auto-named from its filename) and is processed one at a time,
+  automatically, with a live Pending / Processing / Completed / Failed status
+  per file. A failed file never blocks the rest of the queue, and progress
+  survives navigating away from the page.
 - **Validation Reports & Human Review** — rule-driven validation results and a
   human review workspace per application.
 - **Settings → Administration** — Feedback analytics and Continuous Learning
@@ -330,6 +336,19 @@ indefinitely, with no error surfaced anywhere in the UI. See
 `backend/docs/phase15e-reliability.md` for the full worker execution model
 (in-process background draining vs. dedicated worker processes).
 
+**Single command (recommended for local dev):** a root-level `package.json`
+runs the API, the queue worker and the frontend together in one terminal,
+labeled and color-coded, stopped together with one Ctrl+C:
+
+```bash
+npm install   # one-time, installs concurrently
+npm run dev
+```
+
+This still requires Postgres running and the one-time `alembic upgrade head`
+/ `python -m app.auth.seed` steps done first (see Getting Started above). The
+three processes can also be run individually, as below.
+
 **Backend API (API + OpenAPI docs):**
 
 ```bash
@@ -483,17 +502,21 @@ Per-module design docs live in `backend/docs/`:
   verification → feedback → continuous learning ✅
 - **Frontend navigation redesign** — employee-only sidebar, admin tools moved
   under Settings ✅
+- **Multi-PDF batch upload** — select 30+ separate PDFs in one action from
+  the Applications page ("Batch Upload PDFs"); each file automatically
+  creates and processes its own application (named from its filename),
+  queued and processed strictly one at a time, with live Pending / Processing
+  / Completed / Failed status per file, continuing past any individual
+  failure, and surviving navigation away from the page ✅
 
-**Not yet built:** the pipeline processes one application (one combined PDF)
-at a time end to end — there is no multi-application batch submission that
-takes several organizations' PDFs at once and processes them together. Six
-other department-requested features (conditional/special approval, richer
-report remediation detail, editable report commentary, an AMC "originality"
-check, and others) are logged as scoped-or-pending-clarification backlog
-items, not shipped. See `CONTEXT.md`'s 2026-08-25/26 entries for the real
-detail — this file only points at it.
+**Still not built:** six other department-requested features (conditional/
+special approval, richer report remediation detail, editable report
+commentary, an AMC "originality" check, and others) are logged as
+scoped-or-pending-clarification backlog items, not shipped. See
+`CONTEXT.md`'s 2026-08-25/26 entries for the real detail — this file only
+points at it.
 
-- **Backlog**: Six department-requested features (conditional approvals, multi-application batch queue, report remediation details, etc.) are documented and scoped in `CONTEXT.md`, pending product clarification.
+- **Backlog**: Six department-requested features (conditional approvals, report remediation details, etc.) are documented and scoped in `CONTEXT.md`, pending product clarification.
 
 ---
 
