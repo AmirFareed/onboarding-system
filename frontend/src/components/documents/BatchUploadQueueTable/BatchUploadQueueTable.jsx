@@ -15,12 +15,32 @@ import styles from './BatchUploadQueueTable.module.css';
 function StatusDetail({ item }) {
   if (item.status === 'processing') {
     const phaseLabel = BATCH_PHASE_LABELS[item.phase] ?? 'Processing…';
-    const progressSuffix = item.phase === 'uploading' ? ` ${item.progress}%` : '';
+    // Both phases carry a real, measured 0-100 percentage: 'uploading' from
+    // axios' onUploadProgress (bytes sent), 'polling' from the same
+    // documents-completed/total ratio the Processing page shows (see
+    // BatchUploadContext's pollUntilTerminal). 'creating'/'starting' are
+    // single quick API calls with nothing meaningful to show a percentage
+    // of, so they stay text-only.
+    const showBar = item.phase === 'uploading' || item.phase === 'polling';
+    if (!showBar) {
+      return <span className={styles.detail}>{phaseLabel}</span>;
+    }
     return (
-      <span className={styles.detail}>
-        {phaseLabel}
-        {progressSuffix}
-      </span>
+      <div className={styles.progressWrap}>
+        <span className={styles.detail}>
+          {phaseLabel} {item.progress}%
+        </span>
+        <div
+          className={styles.progressTrack}
+          role="progressbar"
+          aria-valuenow={item.progress}
+          aria-valuemin="0"
+          aria-valuemax="100"
+          aria-label={`${phaseLabel} ${item.progress}%`}
+        >
+          <div className={styles.progressFill} style={{ width: `${item.progress}%` }} />
+        </div>
+      </div>
     );
   }
   if (item.status === 'completed' && item.applicationStatus === 'NEEDS_DOCUMENTS') {

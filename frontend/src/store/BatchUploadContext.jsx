@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useMemo, useRef, useState } from 'react';
 
 import { uploadBulkDocument } from '../services/documents';
-import { startProcessing } from '../services/processing';
+import { getProcessingProgress, startProcessing } from '../services/processing';
 import { mapApplicationStatusToBatchStatus } from '../data/batchStatuses';
 import { getApiErrorMessage } from '../utils/apiError';
 import { useApplicationsStore } from './ApplicationsContext';
@@ -131,7 +131,20 @@ export function BatchUploadProvider({ children }) {
     async (applicationId, clientId) => {
       const deadline = Date.now() + PER_FILE_TIMEOUT_MS;
       while (true) {
-        const result = await applicationsStore.refreshApplication(applicationId);
+        // Real OCR/analysis progress (documents completed out of the
+        // application's own total), not a guess -- reuses the exact same
+        // endpoint the Processing page's useProcessingOverview already polls,
+        // so the batch queue table's progress bar during this phase reflects
+        // the same numbers a user would see there.
+        const [result, progress] = await Promise.all([
+          applicationsStore.refreshApplication(applicationId),
+          getProcessingProgress(applicationId).catch(() => null),
+        ]);
+        if (progress) {
+          const total = Number(progress.total_documents) || 0;
+          const completed = Number(progress.completed) || 0;
+          updateItem(clientId, { progress: total ? Math.round((completed / total) * 100) : 0 });
+        }
         if (result.ok) {
           updateItem(clientId, {
             applicationStatus: result.application.status,

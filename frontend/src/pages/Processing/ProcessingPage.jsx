@@ -6,8 +6,10 @@ import ApplicationStatusBadge from '../../components/applications/ApplicationSta
 import EmptyState from '../../components/common/EmptyState/EmptyState';
 import ErrorState from '../../components/common/ErrorState/ErrorState';
 import Spinner from '../../components/common/Spinner/Spinner';
+import StatusChip from '../../components/common/StatusChip/StatusChip';
 import { useAuth } from '../../hooks/useAuth';
 import { useProcessingOverview } from '../../hooks/useProcessingOverview';
+import { useBatchUploadStore } from '../../store/BatchUploadContext';
 import { canUploadDocuments } from '../../utils/permissions';
 import styles from './ProcessingPage.module.css';
 
@@ -23,6 +25,16 @@ import styles from './ProcessingPage.module.css';
 function ProcessingPage() {
   const { user } = useAuth();
   const { rows, loading, refreshing, error, reload, retry, retryingIds } = useProcessingOverview();
+  // Files still queued in the batch-upload feature (see BatchUploadPage) have
+  // no Application yet -- BatchUploadContext only creates one when a file's
+  // turn to process actually arrives -- so useProcessingOverview's
+  // listApplications-backed `rows` has no way to know about them. Reading
+  // the same app-level context batch-upload itself uses (mounted in
+  // ProtectedLayout, so it survives navigating here) is the only way to show
+  // the full batch picture in one place instead of just the files already
+  // underway.
+  const { items: batchItems } = useBatchUploadStore();
+  const pendingBatchItems = batchItems.filter((item) => item.status === 'pending');
 
   const totals = rows.reduce(
     (acc, { progress }) => {
@@ -84,6 +96,10 @@ function ProcessingPage() {
           </span>
           <span className={styles.cardLabel}>Need attention</span>
         </div>
+        <div className={styles.card}>
+          <span className={styles.cardValue}>{pendingBatchItems.length}</span>
+          <span className={styles.cardLabel}>Queued</span>
+        </div>
       </div>
 
       {loading && rows.length === 0 ? (
@@ -92,7 +108,7 @@ function ProcessingPage() {
         </div>
       ) : error && rows.length === 0 ? (
         <ErrorState message="Unable to load processing status." onRetry={reload} />
-      ) : rows.length === 0 ? (
+      ) : rows.length === 0 && pendingBatchItems.length === 0 ? (
         <EmptyState
           title="No applications yet"
           message="Create an application and upload documents to see processing status here."
@@ -191,6 +207,17 @@ function ProcessingPage() {
               </li>
             );
           })}
+          {pendingBatchItems.map((item) => (
+            <li key={item.clientId} className={styles.item}>
+              <div className={styles.itemHeader}>
+                <span className={styles.appLink}>
+                  <span className={styles.appName}>{item.previewName}</span>
+                </span>
+                <StatusChip label="Pending" variant="neutral" />
+              </div>
+              <p className={styles.idle}>Queued for batch upload — not started yet.</p>
+            </li>
+          ))}
         </ul>
       )}
     </div>
