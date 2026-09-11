@@ -135,6 +135,36 @@ _ACCOUNT_MAINTENANCE_BANK_NAMES: tuple[str, ...] = (
     "UNITED BANK LIMITED",
 )
 
+#: Structural fallback for Account Maintenance Certificate pages that defeat
+#: both the title-phrase match above AND the header-zone-anchored bank-name
+#: match. Confirmed 2026-09-11 on a real sample (TMA Thall Hangu) where
+#: neither existing check fires: the page's own printed title is a scan
+#: typo, "ACCONT MAINTENANCE CERTIFICATE" (missing the "U"), and the issuing
+#: bank's stamp ("THE BANK OF KHYBER") sits in the signature block near the
+#: bottom of the page rather than the header zone -- so the page carries no
+#: strong-evidence match of any kind and silently absorbs into whichever
+#: document group is still open (here, the preceding Authority Letter).
+#:
+#: "CLOSING BALANCE" and "AVERAGE BALANCE" together, appearing anywhere on
+#: the page (deliberately not zone-restricted, since the failure mode above
+#: is precisely a title/stamp positioned outside the header zone), is the
+#: fix: confirmed identical, verbatim, on two independent real samples with
+#: otherwise completely different table layouts and field wording (TMA
+#: Thall Hangu: "ACCOUNT TITLE"/"ACCOUNT STATURS"/"ACCOUNT NUMBER"; TMA Khal
+#: Dir Lower: "TITLE OF ACCOUNT/CUSTOMER NAME"/"ACCOUNT STATUS"/"ACCOUNT
+#: NO.") -- these two specific line labels are the one constant across
+#: both. Checked against the real Tripartite Agreement/Participation
+#: Memorandum pages in the same two source files (which do mention the same
+#: bank account/IBAN in prose -- the exact false-positive
+#: _WEAK_MATCH_EXCLUDED_PHRASES above exists to avoid): neither phrase
+#: appears there, only a bare account number/IBAN sentence with no balance
+#: figures at all -- zero false-positive risk confirmed on the only two
+#: real samples available so far. Not yet checked against a wider corpus
+#: (no Confidential Data/ samples available in this environment); re-verify
+#: once more real samples land, same as every other not-yet-fully-verified
+#: entry in this file.
+_AMC_BALANCE_FIELD_LABELS: tuple[str, str] = ("CLOSING BALANCE", "AVERAGE BALANCE")
+
 #: Strong title phrases keyed in preference order. Iterated deterministically;
 #: the first phrase found wins. These phrases are only ever treated as strong
 #: evidence when anchored at the start of a line inside the header region.
@@ -729,6 +759,14 @@ class DocumentSplitter:
                 for phrase in phrases:
                     if text.startswith(phrase):
                         return doc_type, True, phrase
+
+        # Structural Account Maintenance Certificate fallback -- see
+        # _AMC_BALANCE_FIELD_LABELS. Whole-page, unanchored: the failure mode
+        # this exists for is a title/stamp positioned outside the header
+        # zone, so restricting this to a line-start or header-zone check
+        # would just reproduce the bug being fixed.
+        if all(label in full_text.upper() for label in _AMC_BALANCE_FIELD_LABELS):
+            return DocumentType.ACCOUNT_MAINTENANCE_CERTIFICATE, True, None
 
         return cls._classify_text(full_text), False, None
 
