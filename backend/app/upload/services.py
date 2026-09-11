@@ -11,7 +11,7 @@ import logging
 from pathlib import Path
 from typing import BinaryIO
 
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select, text
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
@@ -505,6 +505,78 @@ class UploadService:
             len(stored_paths),
             getattr(user, "name", "Unknown"),
         )
+
+    def clear_all_applications(self, *, user=None) -> int:
+        """Delete every application and reset the id sequence back to 1.
+
+        Requested as an explicit "Clear History" action on the Application
+        History page: after heavy batch-upload testing (dozens of real TMA
+        onboarding PDFs) the id sequence climbs well past what a clean demo
+        or a fresh testing round wants to start from. Same cascade/file-
+        cleanup contract as :meth:`delete_application`, just for every row at
+        once instead of one: every child table wired ``ON DELETE CASCADE``
+        off ``applications`` (documents, OCR/analysis results, validation
+        results, human reviews, checklist items, queue jobs, validation
+        history) is cleared by Postgres itself when the ``DELETE FROM
+        applications`` below runs -- a plain SQL DELETE fires the same FK
+        cascade whether issued as one bulk statement or one row at a time.
+        ``audit_logs``/``feedback_dataset`` rows still use ``ON DELETE SET
+        NULL`` and are deliberately preserved (with their reference cleared),
+        same as every single-application delete -- this is a bulk version of
+        that same action, not a database reset, so the audit trail and
+        curated ML dataset must survive it.
+
+        One summary audit entry is written for the whole action (not one per
+        deleted application, unlike looping :meth:`delete_application` would
+        produce) with ``application_id=None`` from the start, since it
+        describes a system-wide action with no single application to point
+        at.
+
+        The id sequence reset uses ``pg_get_serial_sequence`` rather than a
+        hardcoded ``applications_id_seq`` name so it keeps working regardless
+        of how Postgres/SQLAlchemy happened to name the underlying sequence.
+
+        Args:
+            user: The authenticated user, recorded as the actor in the audit
+                log. Not authorization -- the route layer's EMPLOYEE-only
+                guard is what actually restricts this action.
+
+        Returns:
+            The number of applications deleted.
+        """
+        applications = list(self._db.scalars(select(Application)).all())
+        stored_paths = [
+            document.stored_file_path
+            for application in applications
+            for document in application.documents
+        ]
+        count = len(applications)
+
+        AuditLogRepository(self._db).create(
+            application_id=None,
+            username=getattr(user, "name", "Unknown"),
+            action="ALL_APPLICATIONS_CLEARED",
+            details={"application_count": count},
+            actor_id=getattr(user, "id", None),
+            actor_role=getattr(user, "role", None),
+            severity="WARNING",
+        )
+
+        self._db.execute(delete(Application))
+        self._db.execute(
+            text("SELECT setval(pg_get_serial_sequence('applications', 'id'), 1, false)")
+        )
+        self._db.commit()
+
+        for stored_path in stored_paths:
+            self._delete_file(stored_path)
+
+        logger.warning(
+            "Cleared all application history (%s applications deleted) by %r",
+            count,
+            getattr(user, "name", "Unknown"),
+        )
+        return count
 
     def list_documents(
         self,

@@ -97,6 +97,13 @@ class ApplicationDeleteResponse(BaseModel):
     message: str = Field(examples=["Application deleted successfully"])
 
 
+class ApplicationsClearedResponse(BaseModel):
+    """Response returned after clearing all application history."""
+
+    message: str = Field(examples=["All application history cleared successfully"])
+    deleted_count: int = Field(examples=[41])
+
+
 class BulkUploadSplitItem(BaseModel):
     """Metadata for a single document extracted during a bulk upload split."""
 

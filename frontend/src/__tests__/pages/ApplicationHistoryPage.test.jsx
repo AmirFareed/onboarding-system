@@ -1,15 +1,23 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import ApplicationHistoryPage from '../../pages/ApplicationHistory/ApplicationHistoryPage';
 
-const { useApplicationHistory, useAuth } = vi.hoisted(() => ({
+const { useApplicationHistory, useAuth, useToast, clearApplicationHistory } = vi.hoisted(() => ({
   useApplicationHistory: vi.fn(),
   useAuth: vi.fn(),
+  useToast: vi.fn(() => ({ success: vi.fn(), error: vi.fn(), info: vi.fn() })),
+  clearApplicationHistory: vi.fn(),
 }));
 
 vi.mock('../../hooks/useApplicationHistory', () => ({ useApplicationHistory }));
 vi.mock('../../hooks/useAuth', () => ({ useAuth }));
+// The Clear History action calls useToast() for success/error feedback --
+// mocked here the same way ApplicationsPage.test.jsx does, since this test
+// exercises the page's hooks shallowly rather than mounting a real
+// ToastProvider.
+vi.mock('../../components/common/Toast/ToastContext', () => ({ useToast }));
+vi.mock('../../services/applications', () => ({ clearApplicationHistory }));
 
 const baseHookValue = {
   rows: [],
@@ -344,5 +352,61 @@ describe('ApplicationHistoryPage', () => {
     
     // Should indicate it's still waiting (no receipt date)
     expect(screen.queryByText(/Documents resubmitted/i)).not.toBeInTheDocument();
+  });
+
+  it('shows Clear History for an Employee user', () => {
+    useAuth.mockReturnValue({ user: { role: 'Verification Officer' } });
+    useApplicationHistory.mockReturnValue({ ...baseHookValue, rows: [makeRow()], total: 1 });
+    renderPage();
+    expect(
+      screen.getByRole('button', { name: /clear all application history/i })
+    ).toBeInTheDocument();
+  });
+
+  it('hides Clear History for an IT user', () => {
+    useAuth.mockReturnValue({ user: { role: 'IT' } });
+    useApplicationHistory.mockReturnValue({ ...baseHookValue, rows: [makeRow()], total: 1 });
+    renderPage();
+    expect(
+      screen.queryByRole('button', { name: /clear all application history/i })
+    ).not.toBeInTheDocument();
+  });
+
+  it('clears history when confirmed, then refreshes and closes the timeline', async () => {
+    useAuth.mockReturnValue({ user: { role: 'Verification Officer' } });
+    const onRefresh = vi.fn();
+    const onCloseTimeline = vi.fn();
+    clearApplicationHistory.mockResolvedValue({ deleted_count: 3 });
+    useApplicationHistory.mockReturnValue({
+      ...baseHookValue,
+      rows: [makeRow()],
+      total: 1,
+      onRefresh,
+      onCloseTimeline,
+    });
+
+    renderPage();
+    fireEvent.click(screen.getByRole('button', { name: /clear all application history/i }));
+
+    const dialog = screen.getByRole('alertdialog');
+    fireEvent.click(within(dialog).getByRole('button', { name: /^clear history$/i }));
+
+    await waitFor(() => expect(clearApplicationHistory).toHaveBeenCalledTimes(1));
+    expect(onRefresh).toHaveBeenCalled();
+    expect(onCloseTimeline).toHaveBeenCalled();
+  });
+
+  it('does not clear history when the confirmation dialog is cancelled', () => {
+    useAuth.mockReturnValue({ user: { role: 'Verification Officer' } });
+    useApplicationHistory.mockReturnValue({ ...baseHookValue, rows: [makeRow()], total: 1 });
+
+    renderPage();
+    fireEvent.click(screen.getByRole('button', { name: /clear all application history/i }));
+
+    const dialog = screen.getByRole('alertdialog');
+    fireEvent.click(within(dialog).getByRole('button', { name: /^cancel$/i }));
+
+    expect(clearApplicationHistory).not.toHaveBeenCalled();
+    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
   });
 });

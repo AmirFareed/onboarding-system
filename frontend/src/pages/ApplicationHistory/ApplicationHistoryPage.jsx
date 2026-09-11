@@ -12,19 +12,24 @@ import {
   RefreshCw,
   Search,
   ShieldAlert,
+  Trash2,
   Upload,
   X,
 } from 'lucide-react';
 
 import ApplicationStatusBadge from '../../components/applications/ApplicationStatusBadge/ApplicationStatusBadge';
+import ConfirmDialog from '../../components/common/ConfirmDialog/ConfirmDialog';
 import EmptyState from '../../components/common/EmptyState/EmptyState';
 import ErrorState from '../../components/common/ErrorState/ErrorState';
 import Spinner from '../../components/common/Spinner/Spinner';
 import StatusChip from '../../components/common/StatusChip/StatusChip';
+import { useToast } from '../../components/common/Toast/ToastContext';
 import { APPLICATION_STATUSES } from '../../data/statuses';
 import { useApplicationHistory } from '../../hooks/useApplicationHistory';
 import { useAuth } from '../../hooks/useAuth';
 import { getValidationHistoryEvent } from '../../data/statuses';
+import { clearApplicationHistory } from '../../services/applications';
+import { getApiErrorMessage } from '../../utils/apiError';
 import { formatDateTime } from '../../utils/format';
 import { isIt, isEmployee } from '../../utils/roles';
 import { getDocumentTypeConfig } from '../../data/documents';
@@ -55,6 +60,7 @@ const TIMELINE_ICONS = {
  */
 function ApplicationHistoryPage() {
   const { user } = useAuth();
+  const toast = useToast();
   const {
     rows,
     total,
@@ -76,8 +82,31 @@ function ApplicationHistoryPage() {
     onRefresh,
   } = useApplicationHistory();
   const [searchValue, setSearchValue] = useState('');
+  const [confirmClear, setConfirmClear] = useState(false);
+  const [clearing, setClearing] = useState(false);
 
   const allowed = isIt(user) || isEmployee(user);
+  // Matches the backend's EMPLOYEE-only guard on clear-history -- IT can
+  // view history but this is a destructive, whole-system action, not an
+  // everyday capability for that role.
+  const canClearHistory = isEmployee(user);
+
+  const handleClearHistory = async () => {
+    setClearing(true);
+    try {
+      const result = await clearApplicationHistory();
+      setConfirmClear(false);
+      onCloseTimeline();
+      onRefresh();
+      toast.success(
+        `Cleared ${result.deleted_count} application${result.deleted_count === 1 ? '' : 's'}. New applications will start from #1.`
+      );
+    } catch (err) {
+      toast.error(getApiErrorMessage(err));
+    } finally {
+      setClearing(false);
+    }
+  };
 
   if (!allowed) {
     return (
@@ -115,16 +144,30 @@ function ApplicationHistoryPage() {
             Lifecycle history for every application, from submission to decision.
           </p>
         </div>
-        <button
-          className={styles.refreshBtn}
-          type="button"
-          onClick={onRefresh}
-          disabled={loading}
-          aria-label="Refresh application history"
-        >
-          <RefreshCw aria-hidden="true" />
-          Refresh
-        </button>
+        <div className={styles.headerActions}>
+          {canClearHistory && (
+            <button
+              className={styles.clearHistoryBtn}
+              type="button"
+              onClick={() => setConfirmClear(true)}
+              disabled={loading || total === 0}
+              aria-label="Clear all application history"
+            >
+              <Trash2 aria-hidden="true" />
+              Clear History
+            </button>
+          )}
+          <button
+            className={styles.refreshBtn}
+            type="button"
+            onClick={onRefresh}
+            disabled={loading}
+            aria-label="Refresh application history"
+          >
+            <RefreshCw aria-hidden="true" />
+            Refresh
+          </button>
+        </div>
       </header>
 
       <div className={styles.toolbar}>
@@ -612,6 +655,18 @@ function ApplicationHistoryPage() {
           )}
         </section>
       )}
+
+      <ConfirmDialog
+        open={confirmClear}
+        title="Clear all application history?"
+        message={`This permanently deletes all ${total} application${total === 1 ? '' : 's'} and everything tied to them -- documents, OCR results, extracted fields, validation results and human review decisions. This cannot be undone, and the next application created afterward will start again from #1.`}
+        confirmLabel="Clear History"
+        cancelLabel="Cancel"
+        tone="danger"
+        loading={clearing}
+        onConfirm={handleClearHistory}
+        onCancel={() => setConfirmClear(false)}
+      />
     </div>
   );
 }

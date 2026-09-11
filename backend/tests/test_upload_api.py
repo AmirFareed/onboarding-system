@@ -384,6 +384,35 @@ def test_delete_document_missing(authenticated_client):
     assert response.status_code == 404, response.text
 
 
+def test_clear_application_history(authenticated_client, storage_root: Path):
+    first_id = create_application(authenticated_client)
+    upload(authenticated_client, first_id)
+    second_id = create_application(authenticated_client)
+    upload(authenticated_client, second_id)
+    stored = stored_files(storage_root, first_id, "tripartite")[0]
+
+    response = authenticated_client.delete(f"{API}/applications/clear-history")
+
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body["deleted_count"] == 2
+    assert authenticated_client.get(f"{API}/applications/{first_id}").status_code == 404
+    assert authenticated_client.get(f"{API}/applications/{second_id}").status_code == 404
+    assert not stored.exists()
+
+    # The id sequence resets: the next application created after a clear
+    # starts back at 1, not first_id/second_id + 1.
+    next_id = create_application(authenticated_client)
+    assert next_id == 1
+
+
+def test_clear_application_history_empty(authenticated_client):
+    response = authenticated_client.delete(f"{API}/applications/clear-history")
+
+    assert response.status_code == 200, response.text
+    assert response.json()["deleted_count"] == 0
+
+
 # --- List ------------------------------------------------------------------
 
 

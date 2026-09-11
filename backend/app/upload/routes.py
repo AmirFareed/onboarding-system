@@ -26,6 +26,7 @@ from app.upload.schemas import (
     ApplicationDeleteResponse,
     ApplicationDetailResponse,
     ApplicationListResponse,
+    ApplicationsClearedResponse,
     BulkUploadResponse,
     BulkUploadSplitItem,
     DocumentDeleteResponse,
@@ -185,6 +186,46 @@ def get_application(
     return ApplicationDetailResponse(
         message="Application found",
         application=application,
+    )
+
+
+@router.delete(
+    "/applications/clear-history",
+    response_model=ApplicationsClearedResponse,
+    summary="Clear all application history",
+    description=(
+        "Permanently deletes every application and all of its data, then "
+        "resets the application id sequence so the next created application "
+        "starts again from 1. Same cascade as deleting one application "
+        "(documents, OCR/analysis results, validation results, human "
+        "reviews, checklist items, queue jobs, validation history), applied "
+        "to every row at once. Audit log and feedback dataset entries "
+        "survive with their application reference cleared. EMPLOYEE-only: "
+        "this is a destructive, irreversible, whole-system action, not an "
+        "everyday operator/reviewer capability. Registered ahead of the "
+        "single-application delete route below so this literal path is "
+        "matched first, not swallowed by that route's {application_id} "
+        "int-typed path parameter."
+    ),
+)
+@_handle_upload_errors
+def clear_application_history(
+    db: _GET_DB,
+    current_user: User = Depends(require_role(ROLE_EMPLOYEE)),
+) -> ApplicationsClearedResponse:
+    """Delete every application and reset the id sequence back to 1.
+
+    Args:
+        db: Active database session.
+        current_user: The authenticated EMPLOYEE, recorded as the actor.
+
+    Returns:
+        A confirmation message with the number of applications deleted.
+    """
+    deleted_count = _service(db).clear_all_applications(user=current_user)
+    return ApplicationsClearedResponse(
+        message="All application history cleared successfully",
+        deleted_count=deleted_count,
     )
 
 

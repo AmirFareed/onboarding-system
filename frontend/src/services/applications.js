@@ -49,3 +49,16 @@ export function createApplication({ notes } = {}) {
 export function deleteApplication(applicationId) {
   return api.delete(`/applications/${applicationId}`).then(() => undefined);
 }
+
+/**
+ * Permanently delete every application and all of its data, then reset the
+ * application id sequence so the next created application starts again from
+ * 1. EMPLOYEE-only on the backend (see
+ * backend/app/upload/routes.py::clear_application_history). Irreversible --
+ * callers must confirm with the user before invoking this.
+ *
+ * @returns {Promise<{message: string, deleted_count: number}>}
+ */
+export function clearApplicationHistory() {
+  return api.delete('/applications/clear-history').then((response) => response.data);
+}
