@@ -222,11 +222,23 @@ class ValidationReportService:
             DocumentType.SCHEDULE_OF_CHARGES: "Schedule of Charges / Bilateral",
         }
 
+        # The onboarding checklist (Master_Rules_Combined.md / the applicant's
+        # own Master Check List cover page) requires exactly one of each of
+        # these per application. ONE_LINK_LETTER and TRIPARTITE_AGREEMENT
+        # previously read 3 here -- copied from
+        # app.upload.constants.MAX_COPIES_BY_DOCUMENT_TYPE, which is an
+        # unrelated ceiling (the most copies the splitter will accept in one
+        # bulk PDF before flagging for manual review, for departments that
+        # bundle multiple real forms together), not a minimum required count.
+        # Confirmed wrong 2026-09-11 on a real application (TMA Thall Hangu):
+        # both types showed "Partial -- 1 of 3 copies received, please
+        # provide 2 additional copies" despite the applicant having submitted
+        # everything the checklist actually asks for.
         required_copies = {
             DocumentType.AUTHORITY_LETTER: 1,
             DocumentType.ACCOUNT_MAINTENANCE_CERTIFICATE: 1,
-            DocumentType.ONE_LINK_LETTER: 3,
-            DocumentType.TRIPARTITE_AGREEMENT: 3,
+            DocumentType.ONE_LINK_LETTER: 1,
+            DocumentType.TRIPARTITE_AGREEMENT: 1,
             DocumentType.BUSINESS_REQUIREMENT_DOCUMENT: 1,
             DocumentType.BILATERAL_AGREEMENT: 1,
             DocumentType.CNIC_FRONT: 2,
