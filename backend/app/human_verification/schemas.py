@@ -263,6 +263,31 @@ class ReviewerCommentsResponse(BaseModel):
     reviewer_comments: str | None = None
 
 
+class EditedReportRequest(BaseModel):
+    """Payload for saving an edited copy of the printable validation report.
+
+    Attributes:
+        html: The full edited report HTML. Empty/whitespace-only values are
+            stored as None, which reverts the report view and PDF download
+            to always regenerating fresh from live pipeline data.
+    """
+
+    html: str | None = None
+
+
+class EditedReportResponse(BaseModel):
+    """Response carrying the saved edited report HTML for an application.
+
+    Attributes:
+        application_id: Id of the application.
+        html: The saved edited report HTML, or None if not (or no longer)
+            saved.
+    """
+
+    application_id: int
+    html: str | None = None
+
+
 class ErrorResponse(BaseModel):
     """Standard error response body.
 
@@ -278,6 +303,8 @@ __all__ = [
     "ChecklistItemRead",
     "CorrectionItem",
     "CorrectionItemRead",
+    "EditedReportRequest",
+    "EditedReportResponse",
     "ErrorResponse",
     "HumanReviewRequest",
     "HumanReviewResponse",

@@ -19,6 +19,7 @@ import LoginPage from '../pages/Login/LoginPage';
 import PerformancePage from '../pages/Performance/PerformancePage';
 import PlaceholderPage from '../pages/Placeholder/PlaceholderPage';
 import ProcessingPage from '../pages/Processing/ProcessingPage';
+import ReportEditPage from '../pages/ReportEdit/ReportEditPage';
 import SettingsPage from '../pages/Settings/SettingsPage';
 import SystemLogsPage from '../pages/SystemLogs/SystemLogsPage';
 import UploadDocumentsPage from '../pages/UploadDocuments/UploadDocumentsPage';
@@ -89,6 +90,14 @@ function AppRoutes() {
           element={
             <RoleRoute canAccess={canAccessValidationReport}>
               <ValidationReportPage />
+            </RoleRoute>
+          }
+        />
+        <Route
+          path="applications/:applicationId/report-edit"
+          element={
+            <RoleRoute canAccess={canAccessValidationReport}>
+              <ReportEditPage />
             </RoleRoute>
           }
         />

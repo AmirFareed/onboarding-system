@@ -55,6 +55,25 @@ export function getValidationReportPdfUrl(applicationId) {
  * @param {number|string} applicationId Application id.
  * @returns {Promise<void>}
  */
+/**
+ * Save a reviewer-edited copy of the printable validation report.
+ *
+ * Once saved, this exact HTML is what both the report view (the HTML
+ * endpoint the edit page's own iframe loads from) and the PDF download
+ * serve, instead of the report regenerating fresh from live pipeline
+ * data -- see backend/app/reports/services.py's render_html().
+ *
+ * @param {number|string} applicationId Application id.
+ * @param {string|null} html The edited report HTML, or null to clear the
+ *   saved edit and revert to always regenerating fresh.
+ * @returns {Promise<{application_id: number, html: string|null}>}
+ */
+export function saveEditedReportHtml(applicationId, html) {
+  return api
+    .put(`/applications/${applicationId}/edited-report`, { html })
+    .then((response) => response.data);
+}
+
 export async function downloadValidationReportPdf(applicationId) {
   const response = await api.get(
     `/applications/${applicationId}/validation-report/pdf`,

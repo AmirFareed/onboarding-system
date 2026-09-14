@@ -44,6 +44,13 @@ class Application(Base):
         reviewer_comments: Reviewer-edited communication text shown in the
             printable validation report. When null the report uses a
             generated default based on the application status.
+        edited_report_html: A reviewer-edited copy of the printable
+            validation report's full HTML. When set, this exact HTML is
+            what the report view and PDF download both serve instead of
+            regenerating fresh from pipeline data -- an explicit, opt-in
+            override, not the report's normal deterministic-regeneration
+            behavior. When null, both still regenerate from live data as
+            before.
     """
 
     __tablename__ = "applications"
@@ -66,6 +73,7 @@ class Application(Base):
     name: Mapped[str | None] = mapped_column(String(255), nullable=True)
     notes: Mapped[str | None] = mapped_column(Text)
     reviewer_comments: Mapped[str | None] = mapped_column(Text)
+    edited_report_html: Mapped[str | None] = mapped_column(Text)
 
     documents: Mapped[list[Document]] = relationship(
         back_populates="application",

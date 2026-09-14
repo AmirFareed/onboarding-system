@@ -227,3 +227,35 @@ class ApplicationRepository(BaseRepository[Application]):
         self._db.add(application)
         self._commit_and_refresh(application)
         return application.reviewer_comments
+
+    def get_edited_report_html(self, application_id: int) -> str | None:
+        """Return the saved edited report HTML for an application, or None."""
+        application = self.get_by_id(application_id)
+        if application is None:
+            return None
+        return application.edited_report_html
+
+    def save_edited_report_html(
+        self, application_id: int, html: str | None
+    ) -> str | None:
+        """Save (or clear) the edited report HTML for an application.
+
+        Trims whitespace. Empty/whitespace-only values are stored as None,
+        which reverts the report and PDF download to always regenerating
+        fresh from live pipeline data.
+
+        Args:
+            application_id: Id of the application.
+            html: The edited report HTML, or None to clear.
+
+        Returns:
+            The saved HTML (or None if cleared).
+        """
+        application = self.get_by_id(application_id)
+        if application is None:
+            return None
+        trimmed = (html or "").strip()
+        application.edited_report_html = trimmed or None
+        self._db.add(application)
+        self._commit_and_refresh(application)
+        return application.edited_report_html

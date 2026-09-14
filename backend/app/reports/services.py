@@ -185,6 +185,13 @@ class ValidationReportService:
     def render_html(self, *, application_id: int) -> str:
         """Render the printable HTML report for an application.
 
+        Returns the reviewer's saved edited copy verbatim when one exists
+        (``Application.edited_report_html``), instead of regenerating from
+        live pipeline data -- an explicit, opt-in override a reviewer
+        creates via the report edit view. This is the one path in this
+        module that isn't a pure function of stored pipeline data; every
+        other method here still is.
+
         Args:
             application_id: Id of the application.
 
@@ -195,8 +202,11 @@ class ValidationReportService:
             ApplicationNotFound: When the application does not exist.
             ReportGenerationFailed: When rendering fails.
         """
-        report = self.get_report(application_id=application_id)
         application = self._get_application(application_id)
+        if application.edited_report_html:
+            return application.edited_report_html
+
+        report = self.get_report(application_id=application_id)
 
         completeness = None
         try:

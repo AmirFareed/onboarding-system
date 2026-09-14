@@ -23,6 +23,8 @@ from app.database.repositories.application_repository import (
 )
 from app.human_verification.exceptions import ApplicationNotFound, HumanReviewError
 from app.human_verification.schemas import (
+    EditedReportRequest,
+    EditedReportResponse,
     ErrorResponse,
     HumanReviewRequest,
     ReviewerCommentsRequest,
@@ -296,4 +298,105 @@ def save_reviewer_comments(
     return ReviewerCommentsResponse(
         application_id=application_id,
         reviewer_comments=saved,
+    )
+
+
+#: A full rendered report page (styles, tables, boilerplate) is comfortably
+#: under this even for a large application -- guards against a pathological
+#: payload, not a real report's own size.
+_EDITED_REPORT_MAX_LEN = 2_000_000
+
+
+@router.get(
+    "/applications/{application_id}/edited-report",
+    response_model=EditedReportResponse,
+    summary="Get the saved edited report HTML",
+    description=(
+        "Returns the reviewer-saved edited copy of the printable validation "
+        "report for an application. When no edit has been saved, ``html`` "
+        "is null and the report view/PDF download regenerate fresh from "
+        "live pipeline data instead."
+    ),
+    responses=_ERROR_RESPONSES,
+)
+@_handle_human_review_errors
+def get_edited_report(
+    application_id: int,
+    db: _GET_DB,
+) -> EditedReportResponse:
+    """Return the saved edited report HTML for an application.
+
+    Args:
+        application_id: Id of the application.
+        db: Active database session.
+
+    Returns:
+        The edited report response.
+
+    Raises:
+        HTTPException: When the application does not exist.
+    """
+    repo = ApplicationRepository(db)
+    if repo.get_by_id(application_id) is None:
+        raise ApplicationNotFound("Application not found.")
+    return EditedReportResponse(
+        application_id=application_id,
+        html=repo.get_edited_report_html(application_id),
+    )
+
+
+@router.put(
+    "/applications/{application_id}/edited-report",
+    response_model=EditedReportResponse,
+    summary="Save an edited copy of the printable report",
+    description=(
+        "Saves or clears the edited report HTML for an application. Once "
+        "saved, this exact HTML is what the report view and PDF download "
+        "both serve, instead of the report regenerating fresh from live "
+        "pipeline data -- an explicit, reviewer-initiated override. Empty "
+        "or whitespace-only values clear the override."
+    ),
+    responses=_ERROR_RESPONSES,
+)
+@_handle_human_review_errors
+def save_edited_report(
+    application_id: int,
+    request: EditedReportRequest,
+    db: _GET_DB,
+    current_user: _REVIEWER,
+) -> EditedReportResponse:
+    """Save the edited report HTML for an application.
+
+    Only users with the reviewer role may save an edited report; other
+    roles receive ``403 Forbidden``.
+
+    Args:
+        application_id: Id of the application.
+        request: Payload with the edited report HTML.
+        db: Active database session.
+        current_user: The authenticated reviewer.
+
+    Returns:
+        The saved edited report response.
+
+    Raises:
+        HTTPException: When the application does not exist or the HTML
+            exceeds the maximum length.
+    """
+    repo = ApplicationRepository(db)
+    if repo.get_by_id(application_id) is None:
+        raise ApplicationNotFound("Application not found.")
+    html = request.html
+    if html is not None and len(html) > _EDITED_REPORT_MAX_LEN:
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                f"Edited report exceeds maximum length of "
+                f"{_EDITED_REPORT_MAX_LEN} characters."
+            ),
+        )
+    saved = repo.save_edited_report_html(application_id, html)
+    return EditedReportResponse(
+        application_id=application_id,
+        html=saved,
     )

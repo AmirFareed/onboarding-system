@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 
 import { Download, FileText, RefreshCw } from 'lucide-react';
 
@@ -270,16 +271,14 @@ function ValidationReportPage() {
                     The report below is the final recipient-facing validation report.
                   </p>
                   <div className={styles.reportActions}>
-                    <a
-                      href={printableUrl}
-                      target="_blank"
-                      rel="noreferrer"
+                    <Link
+                      to={`/applications/${selectedId}/report-edit`}
                       className={styles.primaryBtn}
                       aria-disabled={report == null}
                     >
                       <FileText aria-hidden="true" />
                       View / Print Report
-                    </a>
+                    </Link>
                     <button
                       type="button"
                       className={styles.primaryBtn}

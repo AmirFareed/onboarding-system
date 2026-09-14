@@ -528,3 +528,132 @@ def test_screen_and_history_are_idempotent(authenticated_client, storage_root):
     first_history = authenticated_client.get(f"{API}/applications/{application_id}{HISTORY_URL}").json()
     second_history = authenticated_client.get(f"{API}/applications/{application_id}{HISTORY_URL}").json()
     assert first_history == second_history
+
+
+# --- Edited report -----------------------------------------------------------
+
+EDITED_REPORT_URL = "/edited-report"
+
+
+def test_get_edited_report_defaults_to_none(authenticated_client, storage_root):
+    application_id = build_single_statement_application(authenticated_client, storage_root)
+
+    response = authenticated_client.get(f"{API}/applications/{application_id}{EDITED_REPORT_URL}")
+
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body["application_id"] == application_id
+    assert body["html"] is None
+
+
+def test_save_and_get_edited_report_round_trips(authenticated_client, storage_root):
+    application_id = build_single_statement_application(authenticated_client, storage_root)
+    edited_html = "<html><body><h1>Hand-edited report</h1></body></html>"
+
+    save_response = authenticated_client.put(
+        f"{API}/applications/{application_id}{EDITED_REPORT_URL}",
+        json={"html": edited_html},
+    )
+    assert save_response.status_code == 200, save_response.text
+    assert save_response.json()["html"] == edited_html
+
+    get_response = authenticated_client.get(f"{API}/applications/{application_id}{EDITED_REPORT_URL}")
+    assert get_response.json()["html"] == edited_html
+
+
+def test_save_edited_report_empty_string_clears_it(authenticated_client, storage_root):
+    application_id = build_single_statement_application(authenticated_client, storage_root)
+    authenticated_client.put(
+        f"{API}/applications/{application_id}{EDITED_REPORT_URL}",
+        json={"html": "<p>Draft</p>"},
+    )
+
+    response = authenticated_client.put(
+        f"{API}/applications/{application_id}{EDITED_REPORT_URL}",
+        json={"html": "   "},
+    )
+
+    assert response.status_code == 200, response.text
+    assert response.json()["html"] is None
+
+
+def test_save_edited_report_rejects_oversized_payload(authenticated_client, storage_root):
+    application_id = build_single_statement_application(authenticated_client, storage_root)
+
+    response = authenticated_client.put(
+        f"{API}/applications/{application_id}{EDITED_REPORT_URL}",
+        json={"html": "x" * 2_000_001},
+    )
+
+    assert response.status_code == 422, response.text
+
+
+def test_edited_report_endpoints_404_for_missing_application(authenticated_client):
+    response = authenticated_client.get(f"{API}/applications/999999{EDITED_REPORT_URL}")
+    assert response.status_code == 404
+
+    response = authenticated_client.put(
+        f"{API}/applications/999999{EDITED_REPORT_URL}",
+        json={"html": "<p>x</p>"},
+    )
+    assert response.status_code == 404
+
+
+def test_saved_edited_report_is_served_by_html_and_pdf_endpoints(authenticated_client, storage_root):
+    """Once an edit is saved, the printable HTML report and the PDF
+    download must both reflect it exactly, instead of regenerating fresh
+    from live pipeline data -- the whole point of saving an edit.
+    """
+    application_id = build_single_statement_application(authenticated_client, storage_root)
+    marker = "EDITED-REPORT-MARKER-4f8c3"
+    edited_html = f"<html><body><p>{marker}</p></body></html>"
+
+    authenticated_client.put(
+        f"{API}/applications/{application_id}{EDITED_REPORT_URL}",
+        json={"html": edited_html},
+    )
+
+    html_response = authenticated_client.get(
+        f"{API}/applications/{application_id}/validation-report/html"
+    )
+    assert html_response.status_code == 200, html_response.text
+    assert html_response.text == edited_html
+
+    pdf_response = authenticated_client.get(
+        f"{API}/applications/{application_id}/validation-report/pdf"
+    )
+    assert pdf_response.status_code == 200, pdf_response.text
+    assert pdf_response.headers["content-type"] == "application/pdf"
+    # WeasyPrint-rendered PDF text streams are compressed, so the marker
+    # won't appear as a raw substring of the PDF bytes -- decode it back to
+    # confirm the edited content actually made it into the PDF, not just
+    # that rendering didn't crash.
+    import pymupdf
+
+    pdf_doc = pymupdf.open(stream=pdf_response.content, filetype="pdf")
+    try:
+        extracted_text = "".join(page.get_text() for page in pdf_doc)
+    finally:
+        pdf_doc.close()
+    assert marker in extracted_text
+
+
+def test_clearing_edited_report_reverts_to_live_regeneration(authenticated_client, storage_root):
+    application_id = build_single_statement_application(authenticated_client, storage_root)
+    original_html = authenticated_client.get(
+        f"{API}/applications/{application_id}/validation-report/html"
+    ).text
+
+    authenticated_client.put(
+        f"{API}/applications/{application_id}{EDITED_REPORT_URL}",
+        json={"html": "<html><body>Edited</body></html>"},
+    )
+    authenticated_client.put(
+        f"{API}/applications/{application_id}{EDITED_REPORT_URL}",
+        json={"html": None},
+    )
+
+    reverted_html = authenticated_client.get(
+        f"{API}/applications/{application_id}/validation-report/html"
+    ).text
+    assert reverted_html == original_html

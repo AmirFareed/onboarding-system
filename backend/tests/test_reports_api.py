@@ -55,16 +55,19 @@ prescribed fees collected at each facility office.
 This office intends to go towards Digital Payments via KPITB's FinTech Unit.
 """
 
-#: Per-group rule totals expected from the 54-rule ruleset (57 implemented,
+#: Per-group rule totals expected from the 55-rule ruleset (58 implemented,
 #: CrossPeriodRule, CrossBranchCodeRule and DocumentScheduleRule unregistered
 #: -- see rule_engine/rules/__init__.py -- plus FieldStatementPeriodPresenceRule
 #: and FieldBalancesPresenceRule removed outright, same file).
 EXPECTED_GROUP_TOTALS = {
     "Document Validation": 18,
     "Format Validation": 6,
-    # CrossPeriodRule is unregistered (see rule_engine/rules/__init__.py) --
-    # 3 of the 4 implemented cross-document rules are active.
-    "Cross Document Validation": 3,
+    # CrossPeriodRule and CrossBranchCodeRule are unregistered (see
+    # rule_engine/rules/__init__.py) -- 4 of the 6 implemented
+    # cross-document rules are active (CrossOneLinkAccountRule added
+    # 2026-09-14: real department requirement, 1-Link account number/IBAN
+    # must match the AMC's).
+    "Cross Document Validation": 4,
     "Date Validation": 8,
     "Signature Validation": 6,
     "Stamp Validation": 5,
@@ -188,10 +191,10 @@ def test_report_approved_application(authenticated_client, storage_root):
     assert len(report["document_summary"]) == 8
 
     summary = report["rule_summary"]
-    assert summary["total"] == 54
+    assert summary["total"] == 55
     assert summary["failed"] == 0
     assert summary["pending_manual_review"] == 0
-    assert summary["passed"] + summary["warnings"] == 54
+    assert summary["passed"] + summary["warnings"] == 55
 
     assert [
         group["category"] for group in summary["by_category"]
@@ -256,7 +259,13 @@ def test_report_approved_application(authenticated_client, storage_root):
     # SCHEDULE_OF_CHARGES type used to use. Confirmed via the actual test run
     # (not assumed) that the fleet-wide mean lands on this exact same value --
     # a genuine coincidence, not a derived one.
-    assert extraction["overall_confidence"] == 0.9587
+    # Recalibrated again 2026-09-14: ONE_LINK_LETTER_TEXT (test_document_
+    # analysis_api.py) grew from 1 real field to 4 once OneLinkLetterExtractor
+    # was corrected to target the genuine Application Form (see its
+    # docstring) -- still fully covered (all 4 EXPECTED_FIELDS present), but
+    # more fields' own validation results now feed the fleet-wide mean than
+    # before. Confirmed via the actual test run, not derived.
+    assert extraction["overall_confidence"] == 0.9626
 
     assert [item["code"] for item in report["recommendations"]] == [
         "NO_ACTION_REQUIRED"
@@ -270,7 +279,7 @@ def test_report_failed_application(authenticated_client, storage_root):
 
     assert report["overall_status"] == "FAILED"
     summary = report["rule_summary"]
-    assert summary["total"] == 54
+    assert summary["total"] == 55
     assert summary["failed"] > 0
     # Only the present AMC document's visual rules await detection; the rest
     # fail because their documents are missing.
@@ -384,13 +393,13 @@ def test_report_summary_condensed(authenticated_client, storage_root):
     assert summary["overall_status"] == "APPROVED"
     assert summary["application_status"] == "SUBMITTED"
     assert summary["document_count"] == 8
-    assert summary["rule_total"] == 54
-    assert summary["rule_passed"] + summary["rule_warnings"] == 54
+    assert summary["rule_total"] == 55
+    assert summary["rule_passed"] + summary["rule_warnings"] == 55
     assert summary["rule_failed"] == 0
     assert summary["rule_pending_review"] == 0
     assert summary["field_count"] > 0
     # See test_report_approved_application's overall_confidence comment.
-    assert summary["overall_confidence"] == 0.9587
+    assert summary["overall_confidence"] == 0.9626
     assert summary["recommendation_count"] == 1
 
 
