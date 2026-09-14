@@ -37,6 +37,18 @@ function BatchUploadPage() {
     }
   };
 
+  const handleStart = async () => {
+    const { remainingMissingFileCount } = await start();
+    if (remainingMissingFileCount > 0) {
+      toast.error(
+        `${remainingMissingFileCount} file${remainingMissingFileCount === 1 ? '' : 's'} ` +
+          `still need${remainingMissingFileCount === 1 ? 's' : ''} to be re-added before ` +
+          `${remainingMissingFileCount === 1 ? 'it' : 'they'} can process -- their file didn't ` +
+          `survive a page reload. Remove and re-add ${remainingMissingFileCount === 1 ? 'it' : 'them'} below.`
+      );
+    }
+  };
+
   const canReset = !running && items.length > 0;
 
   return (
@@ -68,6 +80,11 @@ function BatchUploadPage() {
           <span className={styles.countItem}>
             <strong>{counts.failed}</strong> failed
           </span>
+          {counts.needsFile > 0 && (
+            <span className={styles.countItemWarning}>
+              <strong>{counts.needsFile}</strong> need file re-added
+            </span>
+          )}
         </div>
         <div className={styles.controls}>
           {running ? (
@@ -79,7 +96,7 @@ function BatchUploadPage() {
             <button
               type="button"
               className={styles.primaryBtn}
-              onClick={start}
+              onClick={handleStart}
               disabled={counts.pending === 0}
             >
               <Play aria-hidden="true" />

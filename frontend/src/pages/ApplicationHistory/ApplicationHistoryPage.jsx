@@ -29,6 +29,7 @@ import { useApplicationHistory } from '../../hooks/useApplicationHistory';
 import { useAuth } from '../../hooks/useAuth';
 import { getValidationHistoryEvent } from '../../data/statuses';
 import { clearApplicationHistory } from '../../services/applications';
+import { useBatchUploadStore } from '../../store/BatchUploadContext';
 import { getApiErrorMessage } from '../../utils/apiError';
 import { formatDateTime } from '../../utils/format';
 import { isIt, isEmployee } from '../../utils/roles';
@@ -90,6 +91,17 @@ function ApplicationHistoryPage() {
   // view history but this is a destructive, whole-system action, not an
   // everyday capability for that role.
   const canClearHistory = isEmployee(user);
+
+  // Real incident, 2026-09-14: Clear History was used while a 34-file batch
+  // upload was still running, silently deleting the applications it had
+  // already created -- the batch queue itself never found out, since
+  // deleting an application doesn't touch BatchUploadContext at all. This
+  // can't be prevented outright (an application mid-batch is a real
+  // application like any other, and the destructive action itself is
+  // legitimate to keep), so the fix is making sure a reviewer can't miss
+  // that a batch is running when they confirm the deletion.
+  const { running: batchRunning, counts: batchCounts } = useBatchUploadStore();
+  const batchInProgress = batchRunning || batchCounts.pending > 0 || batchCounts.processing > 0;
 
   const handleClearHistory = async () => {
     setClearing(true);
@@ -658,9 +670,15 @@ function ApplicationHistoryPage() {
 
       <ConfirmDialog
         open={confirmClear}
-        title="Clear all application history?"
-        message={`This permanently deletes all ${total} application${total === 1 ? '' : 's'} and everything tied to them -- documents, OCR results, extracted fields, validation results and human review decisions. This cannot be undone, and the next application created afterward will start again from #1.`}
-        confirmLabel="Clear History"
+        title={
+          batchInProgress ? 'A batch upload is still running -- clear history anyway?' : 'Clear all application history?'
+        }
+        message={
+          batchInProgress
+            ? `A batch upload is currently in progress (${batchCounts.completed} done, ${batchCounts.processing} processing, ${batchCounts.pending} still queued). Clearing history now permanently deletes every application -- including the ones this batch has already created -- and the batch queue has no way to know they're gone. A file currently being processed will keep polling its now-deleted application for up to 10 minutes before giving up and moving on to the next file, rather than failing immediately. Consider waiting for the batch to finish, or cancelling it first from the Batch Upload page. This cannot be undone, and the next application created afterward will start again from #1.`
+            : `This permanently deletes all ${total} application${total === 1 ? '' : 's'} and everything tied to them -- documents, OCR results, extracted fields, validation results and human review decisions. This cannot be undone, and the next application created afterward will start again from #1.`
+        }
+        confirmLabel={batchInProgress ? 'Clear Anyway' : 'Clear History'}
         cancelLabel="Cancel"
         tone="danger"
         loading={clearing}

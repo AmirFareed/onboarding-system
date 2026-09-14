@@ -53,6 +53,16 @@
   margin-right: 4px;
 }
 
+.countItemWarning {
+  font-size: 13px;
+  color: var(--color-warning);
+}
+
+.countItemWarning strong {
+  font-size: 15px;
+  margin-right: 4px;
+}
+
 .controls {
   display: flex;
   align-items: center;

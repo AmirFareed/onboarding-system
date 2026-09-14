@@ -4,6 +4,7 @@ import { Eye, X } from 'lucide-react';
 import StatusChip from '../../common/StatusChip/StatusChip';
 import EmptyState from '../../common/EmptyState/EmptyState';
 import { BATCH_PHASE_LABELS, getBatchItemStatusDisplay } from '../../../data/batchStatuses';
+import { fileIsMissing } from '../../../store/BatchUploadContext';
 import styles from './BatchUploadQueueTable.module.css';
 
 /**
@@ -13,6 +14,14 @@ import styles from './BatchUploadQueueTable.module.css';
  * @param {object} props.item A batch queue item from BatchUploadContext.
  */
 function StatusDetail({ item }) {
+  if (fileIsMissing(item)) {
+    return (
+      <span className={styles.detailWarning}>
+        This file didn't survive a page reload (browsers can't keep hold of it) — remove
+        this row and add the file again to include it in the batch.
+      </span>
+    );
+  }
   if (item.status === 'processing') {
     const phaseLabel = BATCH_PHASE_LABELS[item.phase] ?? 'Processing…';
     // Both phases carry a real, measured 0-100 percentage: 'uploading' from
@@ -87,7 +96,9 @@ function BatchUploadQueueTable({ items, onRemove }) {
         </thead>
         <tbody>
           {items.map((item) => {
-            const display = getBatchItemStatusDisplay(item.status);
+            const display = fileIsMissing(item)
+              ? { label: 'Needs file', variant: 'warning' }
+              : getBatchItemStatusDisplay(item.status);
             return (
               <tr key={item.clientId} className={styles.row}>
                 <td className={styles.fileCell} data-label="File">

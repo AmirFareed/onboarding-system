@@ -84,6 +84,13 @@
   overflow-wrap: anywhere;
 }
 
+.detailWarning {
+  font-size: 12px;
+  color: var(--color-warning);
+  max-width: 280px;
+  overflow-wrap: anywhere;
+}
+
 .actionsHeader {
   text-align: right;
 }

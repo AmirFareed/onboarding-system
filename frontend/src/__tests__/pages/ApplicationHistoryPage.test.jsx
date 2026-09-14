@@ -3,11 +3,21 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import ApplicationHistoryPage from '../../pages/ApplicationHistory/ApplicationHistoryPage';
 
-const { useApplicationHistory, useAuth, useToast, clearApplicationHistory } = vi.hoisted(() => ({
+const {
+  useApplicationHistory,
+  useAuth,
+  useToast,
+  clearApplicationHistory,
+  useBatchUploadStore,
+} = vi.hoisted(() => ({
   useApplicationHistory: vi.fn(),
   useAuth: vi.fn(),
   useToast: vi.fn(() => ({ success: vi.fn(), error: vi.fn(), info: vi.fn() })),
   clearApplicationHistory: vi.fn(),
+  useBatchUploadStore: vi.fn(() => ({
+    running: false,
+    counts: { total: 0, pending: 0, processing: 0, completed: 0, failed: 0 },
+  })),
 }));
 
 vi.mock('../../hooks/useApplicationHistory', () => ({ useApplicationHistory }));
@@ -18,6 +28,11 @@ vi.mock('../../hooks/useAuth', () => ({ useAuth }));
 // ToastProvider.
 vi.mock('../../components/common/Toast/ToastContext', () => ({ useToast }));
 vi.mock('../../services/applications', () => ({ clearApplicationHistory }));
+// The Clear History dialog checks whether a batch upload is running (see
+// the page's own real-incident comment) -- mocked the same shallow way as
+// every other store/hook dependency here, defaulting to "no batch running"
+// so existing tests are unaffected unless a test explicitly overrides it.
+vi.mock('../../store/BatchUploadContext', () => ({ useBatchUploadStore }));
 
 const baseHookValue = {
   rows: [],
@@ -408,5 +423,38 @@ describe('ApplicationHistoryPage', () => {
 
     expect(clearApplicationHistory).not.toHaveBeenCalled();
     expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+  });
+
+  it('warns and relabels the confirm button when a batch upload is running', () => {
+    useAuth.mockReturnValue({ user: { role: 'Verification Officer' } });
+    useApplicationHistory.mockReturnValue({ ...baseHookValue, rows: [makeRow()], total: 1 });
+    useBatchUploadStore.mockReturnValue({
+      running: true,
+      counts: { total: 34, pending: 30, processing: 1, completed: 3, failed: 0 },
+    });
+
+    renderPage();
+    fireEvent.click(screen.getByRole('button', { name: /clear all application history/i }));
+
+    const dialog = screen.getByRole('alertdialog');
+    expect(dialog.textContent).toMatch(/batch upload is still running/i);
+    expect(dialog.textContent).toMatch(/3 done, 1 processing, 30 still queued/i);
+    expect(within(dialog).getByRole('button', { name: /clear anyway/i })).toBeInTheDocument();
+  });
+
+  it('does not warn about a batch when none is running', () => {
+    useAuth.mockReturnValue({ user: { role: 'Verification Officer' } });
+    useApplicationHistory.mockReturnValue({ ...baseHookValue, rows: [makeRow()], total: 1 });
+    useBatchUploadStore.mockReturnValue({
+      running: false,
+      counts: { total: 0, pending: 0, processing: 0, completed: 0, failed: 0 },
+    });
+
+    renderPage();
+    fireEvent.click(screen.getByRole('button', { name: /clear all application history/i }));
+
+    const dialog = screen.getByRole('alertdialog');
+    expect(dialog.textContent).not.toMatch(/batch upload/i);
+    expect(within(dialog).getByRole('button', { name: /^clear history$/i })).toBeInTheDocument();
   });
 });
