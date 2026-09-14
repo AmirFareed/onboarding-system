@@ -88,11 +88,11 @@ def run(rule_id: str, ctx: RuleContext) -> RuleResult:
 # --- Registry contract -------------------------------------------------------
 
 
-def test_registry_has_54_rules_in_8_categories():
+def test_registry_has_55_rules_in_8_categories():
     from collections import Counter
 
     rules = REGISTRY.rules()
-    assert len(rules) == 54
+    assert len(rules) == 55
     categories = Counter(rule.category for rule in rules)
     assert categories == {
         # DocumentScheduleRule is implemented but deliberately not registered
@@ -104,7 +104,9 @@ def test_registry_has_54_rules_in_8_categories():
         # deliberately not registered -- see the inline rationale in
         # rule_engine/rules/__init__.py. FieldStatementPeriodPresenceRule and
         # FieldBalancesPresenceRule were removed outright -- see the same file.
-        "cross_document": 3,
+        # CrossOneLinkAccountRule added 2026-09-14 (real department
+        # requirement: 1-Link account number/IBAN must match the AMC's).
+        "cross_document": 4,
         "date": 8,
         "visual": 11,
         "policy": 4,
@@ -469,6 +471,100 @@ def test_cross_document_rule_fails_on_missing_field_in_participant():
     result = run("CROSS_ACCOUNT_HOLDER_MATCH", ctx)
     assert result.status is ValidationStatus.FAIL
     assert "missing from document" in result.message
+
+
+def _one_link_account_context(
+    *,
+    amc_account_number: str | None = "1234567890",
+    amc_iban: str | None = None,
+    one_link_value: str | None = "1234567890",
+    include_amc: bool = True,
+    include_one_link: bool = True,
+) -> RuleContext:
+    docs: dict[str, list[int]] = {}
+    if include_amc:
+        docs[AMC] = [1]
+    if include_one_link:
+        docs[ONE_LINK] = [2]
+    fields = []
+    if amc_account_number is not None:
+        fields.append(field("account_number", amc_account_number, doc_id=1, doc_type=AMC))
+    if amc_iban is not None:
+        fields.append(field("iban", amc_iban, doc_id=1, doc_type=AMC))
+    if one_link_value is not None:
+        fields.append(
+            field("account_number_or_iban", one_link_value, doc_id=2, doc_type=ONE_LINK)
+        )
+    return context(docs=docs, fields=fields)
+
+
+def test_cross_one_link_account_rule_passes_when_matching_account_number():
+    result = run("CROSS_ONE_LINK_ACCOUNT_MATCH", _one_link_account_context())
+    assert result.status is ValidationStatus.PASS
+
+
+def test_cross_one_link_account_rule_passes_when_matching_iban():
+    """The OR relationship this rule exists for: the 1-Link form's single
+    value can match either of the AMC's two separate fields. Confirmed here
+    against `iban` specifically -- the account_number case is covered by
+    the "matching_account_number" test above.
+    """
+    result = run(
+        "CROSS_ONE_LINK_ACCOUNT_MATCH",
+        _one_link_account_context(
+            amc_account_number=None,
+            amc_iban="PK36SCBL0000001123456702",
+            one_link_value="PK36SCBL0000001123456702",
+        ),
+    )
+    assert result.status is ValidationStatus.PASS
+
+
+def test_cross_one_link_account_rule_fails_on_mismatch():
+    result = run(
+        "CROSS_ONE_LINK_ACCOUNT_MATCH",
+        _one_link_account_context(amc_account_number="1234567890", one_link_value="9999999999"),
+    )
+    assert result.status is ValidationStatus.FAIL
+    assert "does not match" in result.message
+
+
+def test_cross_one_link_account_rule_fails_when_amc_missing():
+    result = run(
+        "CROSS_ONE_LINK_ACCOUNT_MATCH", _one_link_account_context(include_amc=False)
+    )
+    assert result.status is ValidationStatus.FAIL
+    assert "ACCOUNT_MAINTENANCE_CERTIFICATE" in result.message
+
+
+def test_cross_one_link_account_rule_fails_when_one_link_missing():
+    result = run(
+        "CROSS_ONE_LINK_ACCOUNT_MATCH", _one_link_account_context(include_one_link=False)
+    )
+    assert result.status is ValidationStatus.FAIL
+    assert "ONE_LINK_LETTER" in result.message
+
+
+def test_cross_one_link_account_rule_fails_when_one_link_field_missing():
+    result = run(
+        "CROSS_ONE_LINK_ACCOUNT_MATCH", _one_link_account_context(one_link_value=None)
+    )
+    assert result.status is ValidationStatus.FAIL
+    assert "account_number_or_iban is missing" in result.message
+
+
+def test_cross_one_link_account_rule_fails_when_amc_has_neither_field():
+    """Not the CrossBranchCodeRule/CrossPeriodRule failure shape: this only
+    FAILs when the AMC genuinely has neither field extracted, which real
+    AMC content essentially never does (unlike branch_code/statement_period,
+    which no real document states at all) -- see the rule's own docstring.
+    """
+    result = run(
+        "CROSS_ONE_LINK_ACCOUNT_MATCH",
+        _one_link_account_context(amc_account_number=None, amc_iban=None),
+    )
+    assert result.status is ValidationStatus.FAIL
+    assert "account_number/iban is missing" in result.message
 
 
 # --- Date and period ---------------------------------------------------------

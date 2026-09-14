@@ -13,6 +13,7 @@ from app.rule_engine.rules.cross_document_rules import (
     CrossAccountHolderRule,
     CrossAccountNumberRule,
     CrossIbanRule,
+    CrossOneLinkAccountRule,
 )
 from app.rule_engine.rules.date_rules import (
     DateCnicNotExpiredRule,
@@ -134,7 +135,7 @@ class RuleRegistry:
                 FormatDateShapeRule(),
                 FormatEStampRule(),
 
-                # Cross-document consistency (2 registered of 4 implemented).
+                # Cross-document consistency (4 registered of 6 implemented).
                 # CrossBranchCodeRule is implemented but deliberately not
                 # registered: its `branch_code` field has no extraction or
                 # normalization support anywhere in the pipeline (unlike the
@@ -162,6 +163,14 @@ class RuleRegistry:
                 CrossAccountHolderRule(),
                 CrossAccountNumberRule(),
                 CrossIbanRule(),
+                # Real department requirement (2026-09-14 reference
+                # document): the 1-Link Application Form's account number/
+                # IBAN must match the AMC's. Its own rule class rather than
+                # participants added to CrossAccountNumberRule/CrossIbanRule
+                # above -- see CrossOneLinkAccountRule's docstring for why
+                # that would reproduce the CrossBranchCodeRule/CrossPeriodRule
+                # failure mode instead of fixing anything.
+                CrossOneLinkAccountRule(),
 
                 # Date and period (8).
                 DatePeriodSequenceRule(),

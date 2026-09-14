@@ -191,6 +191,25 @@ def _as_single_line(raw: str) -> str:
     return re.sub(r"\s+", " ", raw).strip()
 
 
+def _last_account_reference_token(raw: str) -> str:
+    """Return the trailing account-number/IBAN-shaped token on a captured value.
+
+    Real "Bank Account Number" values on the 1-Link Application Form are
+    consistently the last (and usually only) token on their line, but one
+    real sample (GDC Achini Payan) prefixes the actual number with a stray
+    account-type abbreviation ("PLS 3002638893") -- capturing the whole
+    value verbatim would produce "PLS 3002638893" instead of "3002638893",
+    which would never match the AMC's own bare-digit value in the
+    cross-document check this field exists for (CrossOneLinkAccountRule).
+    Confirmed a no-op against every other real sample checked (TMA Bannu,
+    GDC Chitral Lower, GDC Dassu Kohistan, GDC Dir Upper, GDC Booni
+    Chitral, GDC Bakhshali Mardan, GDC Barkhalozai Bajaur): none has more
+    than one alnum token on this line.
+    """
+    tokens = re.findall(r"[A-Za-z0-9]{5,}", raw)
+    return tokens[-1] if tokens else raw.strip()
+
+
 #: Field labels the bank-account block parser understands, ordered most specific
 #: first. Each entry maps a label pattern to the field key it feeds. Built
 #: against the real cached layouts (Confidential Data/.ocr_cache/): the AMC
@@ -1568,78 +1587,108 @@ class BusinessRequirementDocumentExtractor(RegexExtractor):
 
 
 class OneLinkLetterExtractor(RegexExtractor):
-    """Extracts fields from whatever real-world document lands in the 1-Link
-    Letter checklist slot.
+    """Extracts fields from the 1-Link Application Form (In-Direct Customer).
 
-    Real content doesn't match docs/Master_Rules_Combined.md Section 4's
-    KYC-style form spec -- see CONTEXT.md for the full mismatch and the
-    splitter root cause. This extractor is grounded in what's actually
-    there (a signed "PARTICIPATION MEMORANDUM..."), not the unvalidated
-    spec, and deliberately stays narrow: department decision, 2026-08-19
-    (see CONTEXT.md) -- extract only what's clearly critical and reliably
-    present, not every rulebook-vs-real-world variant of this document.
+    **Superseded 2026-09-14, real-sample-corrected.** This extractor was
+    originally built (department decision, 2026-08-19) against what was, at
+    the time, the only real content ever seen in this checklist slot: a
+    signed "PARTICIPATION MEMORANDUM..." -- see CONTEXT.md's "1-Link Letter
+    checklist-meaning mismatch" entry. That premise stopped being true on
+    2026-08-25, when a separate, deliberate splitter fix (see
+    ``splitter.py``'s ``_FULL_PAGE_STRONG_PHRASES``) correctly routed
+    Participation Memorandum pages to ``TRIPARTITE_AGREEMENT`` instead --
+    its real three-party signature block is the Tripartite Agreement, not a
+    1-Link form. Nobody updated this extractor afterward: it kept the old
+    Participation-Memorandum-shaped pattern, silently extracting nothing
+    from what should now actually land here. A department reference
+    document (2026-09-14) confirmed the real occupant of this slot is
+    exactly what docs/Master_Rules_Combined.md Section 4 always said it
+    would be -- the genuine KYC-style "Application Form (In-Direct
+    Customer)" -- and supplied 8 independent real samples across 8
+    departments (TMA Bannu, GDC Bakhshali Mardan, GDC Chitral Lower, GDC
+    Dassu Kohistan, GDC Dir Upper, GDC Booni Chitral, GDC Achini Payan, GDC
+    Barkhalozai Bajaur) confirming the fields below are reliably present,
+    single-valued and unambiguous on every one -- the opposite of the
+    multi-bank-table ambiguity that justified skipping this the first time.
 
-    organization_name is anchored on "<ORG NAME> hereby authorizes 1LINK to
-    take actions" (clause x), confirmed present in all 4 real samples so
-    far. Deliberately case-sensitive: the org name is consistently ALL CAPS
-    in this sentence, and a case-insensitive match pulls in unrelated
-    lower-case prose ahead of it instead (confirmed while developing this
-    pattern).
+    organization_name is now anchored on the form's own labeled field,
+    "Organization Name (as per registration document):", present verbatim
+    on all 8 samples -- a direct, reliable label instead of a mid-sentence
+    clause. The original "<ORG NAME> hereby authorizes 1LINK to take
+    actions" pattern (see git history for its own real-sample validation
+    against 23 Participation Memorandum copies) is kept as a fallback, not
+    deleted: if a Participation Memorandum ever lands here again -- a
+    misrouted splitter result, a future regression -- organization_name
+    should still extract rather than silently go missing, since it is this
+    type's one critical field.
 
-    The capture group's character class gained lowercase letters 2026-08-26
-    (was ``[A-Z,.\\s]``, now ``[A-Za-z,.\\s]``) -- confirmed real bug: a
-    single stray-lowercase OCR misread inside an otherwise-uppercase org
-    name (TMA_Khal_Dir_Lower's real text reads "TEHsIL\\nMUNICIPAL
-    ADMINISTRATION KHALL hereby authorizes...", a misread "s") blocked the
-    match from starting at the real name's first letter at all, so Python's
-    leftmost-match search instead started two characters later, truncating
-    the captured value down to "IL MUNICIPAL ADMINISTRATION KHALL". This is
-    a different, narrower change than the case-insensitive experiment
-    warned about in the paragraph above: this pattern's overall
-    ``re.IGNORECASE`` flag is untouched (still off, so the literal "hereby
-    authorizes...to take actions" anchor stays exactly as strict as
-    before), and the capture group is still non-greedy with that exact
-    literal string required immediately after it -- so the safety property
-    that matters here (the match can't run past the real org name without
-    immediately finding that literal continuation) is unchanged. Verified
-    against all 23 real ONE_LINK_LETTER cached samples: the known-buggy
-    match now returns the complete real text verbatim, including that
-    same real OCR misread ("TEHsIL MUNICIPAL ADMINISTRATION KHALL", lower-
-    case "s" and all -- the fix stops the truncation, it does not silently
-    correct OCR noise the source text itself contains). 3 more real samples
-    (TMA_Thall_Hangu, TMA_Samarbagh_Dir_Lower -- whose real text has two
-    separate stray-lowercase misreads, "TEs\\nMUNICIPAL ADMINIsTRATION,
-    SAMARBAGH" -- and DG_Sports_KP_Onboarding_Documents, a misread
-    "Pakhtunkliwa") had the identical latent bug shape on their own real
-    OCR noise and are now also fixed; every other real match and every
-    real empty result is unchanged.
+    account_number_or_iban (label "Bank Account Number:") is deliberately
+    NOT split into separate account_number/iban fields the way AMC's
+    structural block parser does: the form gives one combined field whose
+    real value is sometimes account-number-shaped (TMA Bannu, GDC Booni
+    Chitral, GDC Achini Payan) and sometimes IBAN-shaped (GDC Bakhshali
+    Mardan, GDC Chitral Lower, GDC Dir Upper, GDC Barkhalozai Bajaur, GDC
+    Dassu Kohistan) with no reliable way to predict which in advance.
+    Forcing it into one of AMC's two separate fields would make whichever
+    cross-document rule checks the *other* field hard-FAIL every time this
+    form happens to use that shape -- the exact CrossBranchCodeRule/
+    CrossPeriodRule failure mode this project has hit and documented twice
+    already (see cross_document_rules.py). CrossOneLinkAccountRule compares
+    this single field against AMC's account_number OR iban instead, so
+    either real shape can match.
 
-    No IBAN/account field, despite that being the department's stated
-    focus: tested directly against real cached text before deciding.
-    TMA_Lal_Dir_Upper's real sample has exactly one unambiguous IBAN;
-    GDA_Abbotabad's real sample lists a 5-bank reference table with no
-    textual indication of which one is operative -- the same ambiguity
-    that already keeps branch_code (removed here) out of the critical set.
-    RegexExtractor.extract() takes the first regex match unconditionally;
-    it has no way to detect "more than one candidate exists" and fall back
-    to honestly missing, so a plain IBAN pattern would silently return the
-    wrong one of five real banks on that shape. Building the disambiguation
-    needed to do this safely is exactly the kind of variant-by-variant
-    validation this decision says to stop doing -- left out rather than
-    added half-working.
+    account_holder (label "Title of Account:") and bank_name (label "Name
+    of the Bank and branch:") are extracted for completeness/future use but
+    not yet wired into any cross-document rule -- only account/IBAN
+    matching was an explicit, stated department requirement so far.
+
+    branch_code stays excluded, unchanged from the original decision: none
+    of the 8 new real samples states one at all (the form has no such
+    field), so there is still nothing to extract it from.
     """
 
     document_type = AnalyzedDocumentType.ONE_LINK_LETTER
 
     _patterns = {
         "organization_name": re.compile(
-            r"([A-Z][A-Za-z,.\s]{3,60}?)\s+hereby authorizes [1I]\s*LINK to take actions"
+            r"Organization Name \(as per registration document\)\s*:\s*(.+)",
+            re.IGNORECASE,
+        ),
+        "account_number_or_iban": re.compile(
+            r"Bank Account Number\s*:\s*(.+)", re.IGNORECASE
+        ),
+        "account_holder": re.compile(
+            r"Title of Account\s*:\s*(.+)", re.IGNORECASE
+        ),
+        "bank_name": re.compile(
+            r"Name of the Bank and branch\s*:\s*(.+)", re.IGNORECASE
         ),
     }
 
     _post = {
         "organization_name": _as_single_line,
+        "account_number_or_iban": _last_account_reference_token,
+        "account_holder": _as_single_line,
+        "bank_name": _as_single_line,
     }
+
+    #: Legacy organization_name anchor from before the 2026-08-25 splitter
+    #: fix -- see the class docstring. Kept only as a fallback for
+    #: Participation-Memorandum-shaped content, tried when the labeled-field
+    #: pattern above finds nothing.
+    _LEGACY_ORG_NAME_PATTERN = re.compile(
+        r"([A-Z][A-Za-z,.\s]{3,60}?)\s+hereby authorizes [1I]\s*LINK to take actions"
+    )
+
+    def extract(self, text: str) -> dict[str, Any]:
+        fields = super().extract(text)
+        if "organization_name" not in fields:
+            match = self._LEGACY_ORG_NAME_PATTERN.search(text)
+            if match:
+                value = _trim(match.group(1))
+                if value:
+                    fields["organization_name"] = _as_single_line(value)
+        return fields
 
 
 class CnicFrontExtractor(RegexExtractor):

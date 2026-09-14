@@ -238,17 +238,34 @@ Registrar General of Pakistan
 """
 
 
-ONE_LINK_LETTER_TEXT = """PARTICIPATION MEMORANDUM FOR BILLER/SUB-BILLERS/BILL AGGREGATOR MEMBERS
-(v)
-hereby authorize 1LINK for each transaction to carry out settlement and clearing functions as per
-Operating Guidelines, in the bank account number (IBAN) PK00SAMP0000000000000000 titled as Sample General Account
-SAMPLE TEHSIL MUNICIPAL ADMINISTRATION maintained with (SAMPLE BANK) in its
-branch (Sample Road Branch (0099)):
-(x)
-shall ensure business continuity planning (BCP) and disaster recovery (DR) at their side. SAMPLE
-TEHSIL MUNICIPAL ADMINISTRATION hereby authorizes 1LINK to take actions, as it deems
-necessary, to ensure BCP, DR, business operations and network connectivity and SAMPLE
-TEHSIL MUNICIPAL ADMINISTRATION will accept such measures.
+#: Updated 2026-09-14: was a Participation-Memorandum-shaped fixture,
+#: matching what real samples showed *before* the 2026-08-25 splitter fix
+#: moved that document type to TRIPARTITE_AGREEMENT. This checklist slot
+#: now genuinely receives the "Application Form (In-Direct Customer)" --
+#: see OneLinkLetterExtractor's docstring -- so this fixture is updated to
+#: match, real-sample-validated against 8 independent departments.
+#: account_number_or_iban is deliberately "1234567890", matching
+#: ACCOUNT_MAINTENANCE_CERTIFICATE_CROSS_DOC_TEXT's own account_number
+#: (tests/test_rule_engine_api.py), so CrossOneLinkAccountRule passes
+#: cleanly in the full-application fixtures that assemble both documents
+#: together (see tests/test_reports_api.py's build_full_application).
+#: Organization name is "SAMPLE TEHSIL ADMINISTRATION" here, not "...
+#: MUNICIPAL ADMINISTRATION" as in test_document_analysis_engine.py's own
+#: unrelated fixtures -- this one goes through make_text_pdf_bytes()'s
+#: unwrapped single-line insert_text() rendering (no page-width wrapping),
+#: and the longer label+value line silently clips past the page edge
+#: (confirmed directly: truncates to "...ADMINISTRATI"). No test or rule
+#: depends on the two matching.
+ONE_LINK_LETTER_TEXT = """Application Form (In-Direct Customer)
+Know Your Customer
+Company Details
+Organization Name (as per registration document): SAMPLE TEHSIL ADMINISTRATION
+NTN/Registration/Incorporation No.: NIL
+Country of Incorporation: Pakistan
+Bank Account Number: 1234567890
+Title of Account: Sample Tehsil General Account
+Name of the Bank and branch: Future Bank Limited, Main Branch
+Number of Directors of the company: 01
 """
 
 
@@ -795,11 +812,12 @@ def test_analyze_business_requirement_document_runs_real_extraction(
 def test_analyze_one_link_letter_runs_real_extraction(authenticated_client, storage_root):
     """ONE_LINK_LETTER now has a real extractor (Phase 1, fifth checklist type).
 
-    Real samples turned out to be a Participation Memorandum, not
-    docs/Master_Rules_Combined.md Section 4's Application Form -- see
-    OneLinkLetterExtractor's docstring and CONTEXT.md. This text has no
-    bank-statement-shaped labels, proving the same routing-precedence fix
-    Authority Letter's and BRD's tests prove.
+    Real samples (2026-09-14 department reference document, 8 independent
+    departments) confirm this slot receives the genuine "Application Form
+    (In-Direct Customer)" docs/Master_Rules_Combined.md Section 4 always
+    described -- see OneLinkLetterExtractor's docstring for why an earlier
+    real-sample finding (Participation Memorandum content) turned out to
+    predate a splitter fix, not describe the real document.
     """
     application_id = create_application(authenticated_client)
     add_digital_pdf(
@@ -819,7 +837,10 @@ def test_analyze_one_link_letter_runs_real_extraction(authenticated_client, stor
     assert item["outcome"] == "ANALYZED"
     assert item["document_type"] == "ONE_LINK_LETTER"
     fields = item["extracted_fields"]
-    assert fields["organization_name"] == "SAMPLE TEHSIL MUNICIPAL ADMINISTRATION"
+    assert fields["organization_name"] == "SAMPLE TEHSIL ADMINISTRATION"
+    assert fields["account_number_or_iban"] == "1234567890"
+    assert fields["account_holder"] == "Sample Tehsil General Account"
+    assert fields["bank_name"] == "Future Bank Limited, Main Branch"
     assert "branch_code" not in fields
     assert item["confidence_score"] == 1.0
     assert item["verification_status"] == "VERIFIED"
@@ -830,7 +851,7 @@ def test_analyze_one_link_letter_runs_real_extraction(authenticated_client, stor
     assert stored_item["document_type"] == "ONE_LINK_LETTER"
     assert (
         stored_item["extracted_fields"]["organization_name"]
-        == "SAMPLE TEHSIL MUNICIPAL ADMINISTRATION"
+        == "SAMPLE TEHSIL ADMINISTRATION"
     )
 
 

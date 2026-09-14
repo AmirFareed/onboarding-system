@@ -157,11 +157,121 @@ class CrossPeriodRule(_CrossDocumentRule):
     )
 
 
+class CrossOneLinkAccountRule(BaseRule):
+    """The 1-Link form's account number/IBAN must match the AMC's.
+
+    Real department requirement (2026-09-14 reference document): "In 1-Link
+    application form, account number or IBAN must be same with account
+    maintenance certificate account number or IBAN."
+
+    Deliberately **not** built on ``_CrossDocumentRule`` like the rules
+    above, despite comparing the same kind of value: the 1-Link Application
+    Form has a single combined "Bank Account Number" field whose real value
+    is sometimes account-number-shaped (e.g. TMA Bannu, GDC Achini Payan)
+    and sometimes IBAN-shaped (e.g. GDC Bakhshali Mardan, GDC Chitral
+    Lower) with no way to predict which in advance -- see
+    ``OneLinkLetterExtractor``'s docstring, where it's extracted as a single
+    ``account_number_or_iban`` field rather than forced into one of AMC's
+    two separate fields. ``_CrossDocumentRule`` only expresses "all
+    participants agree on one field name"; matching "this one field against
+    *either* of two AMC fields" needs its own OR-based comparison. Forcing
+    this into ``CrossAccountNumberRule``/``CrossIbanRule`` by field name
+    would make one of them hard-FAIL every time the form happens to use the
+    shape the *other* rule checks -- the same failure mode already hit and
+    deliberately avoided twice in this file (``CrossBranchCodeRule``,
+    ``CrossPeriodRule``): a rule that FAILs by construction on real,
+    correct data.
+    """
+
+    id = "CROSS_ONE_LINK_ACCOUNT_MATCH"
+    name = "1-Link account number/IBAN is consistent with the AMC"
+    category = CATEGORY
+
+    _RELATED_FIELDS = ["account_number_or_iban", "account_number", "iban"]
+
+    def evaluate(self, context: RuleContext) -> RuleResult:
+        amc_docs = context.documents_of_type(
+            DocumentType.ACCOUNT_MAINTENANCE_CERTIFICATE.value
+        )
+        one_link_docs = context.documents_of_type(DocumentType.ONE_LINK_LETTER.value)
+        related_documents = sorted({*amc_docs, *one_link_docs})
+
+        if not amc_docs:
+            return self.result(
+                ValidationStatus.FAIL,
+                "Document ACCOUNT_MAINTENANCE_CERTIFICATE is missing; cannot "
+                "compare the 1-Link account number/IBAN",
+                related_document_ids=related_documents,
+                related_field_names=self._RELATED_FIELDS,
+            )
+        if not one_link_docs:
+            return self.result(
+                ValidationStatus.FAIL,
+                "Document ONE_LINK_LETTER is missing; cannot compare the "
+                "account number/IBAN",
+                related_document_ids=related_documents,
+                related_field_names=self._RELATED_FIELDS,
+            )
+
+        one_link_values = normalized_values(
+            context,
+            "account_number_or_iban",
+            document_types={DocumentType.ONE_LINK_LETTER.value},
+        )
+        if not one_link_values:
+            return self.result(
+                ValidationStatus.FAIL,
+                "Field account_number_or_iban is missing from document "
+                "ONE_LINK_LETTER",
+                related_document_ids=related_documents,
+                related_field_names=self._RELATED_FIELDS,
+            )
+
+        amc_values = set(
+            normalized_values(
+                context,
+                "account_number",
+                document_types={DocumentType.ACCOUNT_MAINTENANCE_CERTIFICATE.value},
+            )
+        ) | set(
+            normalized_values(
+                context,
+                "iban",
+                document_types={DocumentType.ACCOUNT_MAINTENANCE_CERTIFICATE.value},
+            )
+        )
+        if not amc_values:
+            return self.result(
+                ValidationStatus.FAIL,
+                "Field account_number/iban is missing from document "
+                "ACCOUNT_MAINTENANCE_CERTIFICATE",
+                related_document_ids=related_documents,
+                related_field_names=self._RELATED_FIELDS,
+            )
+
+        if any(value in amc_values for value in one_link_values):
+            return self.result(
+                ValidationStatus.PASS,
+                "1-Link account number/IBAN matches the AMC",
+                related_document_ids=related_documents,
+                related_field_names=self._RELATED_FIELDS,
+            )
+
+        preview = ", ".join(sorted(f"{value!r}" for value in {*one_link_values, *amc_values}))
+        return self.result(
+            ValidationStatus.FAIL,
+            f"1-Link account number/IBAN does not match the AMC: {preview}",
+            related_document_ids=related_documents,
+            related_field_names=self._RELATED_FIELDS,
+        )
+
+
 __all__ = [
     "CrossAccountHolderRule",
     "CrossAccountNumberRule",
     "CrossBranchCodeRule",
     "CrossIbanRule",
+    "CrossOneLinkAccountRule",
     "CrossPeriodRule",
 ]
 

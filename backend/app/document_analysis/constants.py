@@ -200,12 +200,17 @@ EXPECTED_FIELDS: dict[AnalyzedDocumentType, frozenset[str]] = {
     AnalyzedDocumentType.BUSINESS_REQUIREMENT_DOCUMENT: frozenset(
         {"digitization_intent_confirmed", "revenue_services_listed"}
     ),
-    #: branch_code removed 2026-08-19 (department decision, see CONTEXT.md):
-    #: it only ever extracted from one of two real shapes, and
-    #: CrossBranchCodeRule (the rule it was named to match) is deliberately
-    #: unregistered anyway -- see OneLinkLetterExtractor's docstring.
+    #: branch_code stays excluded -- unchanged from the original 2026-08-19
+    #: decision, still true against the corrected real-content shape (see
+    #: OneLinkLetterExtractor's docstring): the form has no such field at
+    #: all. account_number_or_iban/account_holder/bank_name added
+    #: 2026-09-14 once the extractor was corrected to target the genuine
+    #: "Application Form (In-Direct Customer)" instead of the Participation
+    #: Memorandum this slot no longer receives -- all three are reliably
+    #: present, single-valued fields on every one of 8 independent real
+    #: samples checked.
     AnalyzedDocumentType.ONE_LINK_LETTER: frozenset(
-        {"organization_name"}
+        {"organization_name", "account_number_or_iban", "account_holder", "bank_name"}
     ),
     #: document_number deliberately reuses the same field name IdentityExtractor
     #: (ID_DOCUMENT) already produces, so app.rule_engine.rules.format_rules.
@@ -290,17 +295,17 @@ CRITICAL_FIELDS: dict[AnalyzedDocumentType, frozenset[str]] = {
     AnalyzedDocumentType.BUSINESS_REQUIREMENT_DOCUMENT: frozenset(
         {"digitization_intent_confirmed"}
     ),
-    #: organization_name only. branch_code deliberately excluded -- real
-    #: evidence (2 independent organizations, 4 real samples) shows the
-    #: clause naming a bank account has two incompatible real shapes: one
-    #: organization states a single specific account/branch in one sentence
-    #: (extractable), the other lists a reference table of 5 different banks
-    #: with no textual indication of which one is operative (not safely
-    #: extractable -- see OneLinkLetterExtractor's docstring for why guessing
-    #: a row would be worse than an honest miss). Treating branch_code as
-    #: critical would force every application shaped like the second real
-    #: organization into permanent manual review for a field this pass
-    #: correctly declines to guess.
+    #: organization_name only, unchanged 2026-09-14 when the extractor was
+    #: corrected to target the real "Application Form (In-Direct Customer)"
+    #: instead of the Participation Memorandum this checklist slot no
+    #: longer receives (see OneLinkLetterExtractor's docstring) -- the real
+    #: form simply has no branch_code field of any kind, so there is
+    #: nothing to mark critical or guess at. account_number_or_iban/
+    #: account_holder/bank_name are newly extracted and reliable (8/8 real
+    #: samples) but deliberately left non-critical here too: only
+    #: organization_name was already an established, department-confirmed
+    #: critical field, and expanding the critical set is a bigger,
+    #: separate decision than fixing the extraction gap this pass targets.
     AnalyzedDocumentType.ONE_LINK_LETTER: frozenset({"organization_name"}),
     #: document_number only. This is the field docs/Master_Rules_Combined.md
     #: Section 12's core check ("CNIC follows the required format and is not

@@ -370,6 +370,53 @@ for each Transaction carried out by the Sub-Billers/Bill Aggregator Member, shal
 Operating Guidelines.
 """
 
+#: Synthetic (fabricated, non-real) fixture mirroring the genuine
+#: "Application Form (In-Direct Customer)" shape -- the document this
+#: checklist slot actually receives since the 2026-08-25 splitter fix moved
+#: Participation Memorandum pages (the shape every fixture above mirrors)
+#: to TRIPARTITE_AGREEMENT instead. Modeled on a 2026-09-14 department
+#: reference document supplying 8 independent real samples across 8
+#: departments (TMA Bannu, GDC Bakhshali Mardan, GDC Chitral Lower, GDC
+#: Dassu Kohistan, GDC Dir Upper, GDC Booni Chitral, GDC Achini Payan, GDC
+#: Barkhalozai Bajaur); this fixture mirrors the IBAN-shaped account-number
+#: subset of those (e.g. GDC Chitral Lower, GDC Dir Upper). Never real
+#: extracted values.
+ONE_LINK_LETTER_TEXT_APPLICATION_FORM_IBAN = """Application Form (In-Direct Customer)
+Know Your Customer
+Company Details
+Organization Name (as per registration document): SAMPLE TEHSIL MUNICIPAL ADMINISTRATION
+NTN/Registration/Incorporation No.: NIL
+Country of Incorporation: Pakistan
+Bank Account Number: PK00SAMP0000000000000000
+Title of Account: Principal Sample Tehsil General Account
+Name of the Bank and branch: Sample Bank, Main Branch
+Number of Directors of the company: 01
+"""
+
+#: Same real shape, but mirroring the plain-account-number subset (e.g. TMA
+#: Bannu, GDC Booni Chitral) -- no "PK" prefix at all. Confirms the field
+#: is captured either way and CrossOneLinkAccountRule's OR-based comparison
+#: is what has to tell the two shapes apart, not the extractor. Never real
+#: extracted values.
+ONE_LINK_LETTER_TEXT_APPLICATION_FORM_PLAIN_ACCOUNT = """Application Form (In-Direct Customer)
+Organization Name (as per registration document): SAMPLE DEVELOPMENT AUTHORITY
+Bank Account Number: 1234567890123
+Title of Account: Sample Development Authority General Account
+Name of the Bank and branch: Sample National Bank, City Branch
+"""
+
+#: Mirrors the one real sample (GDC Achini Payan) whose "Bank Account
+#: Number" value is prefixed with a stray account-type abbreviation ("PLS
+#: 3002638893") rather than being a bare number/IBAN -- confirms
+#: _last_account_reference_token strips it down to the real trailing
+#: number. Never real extracted values.
+ONE_LINK_LETTER_TEXT_APPLICATION_FORM_ACCOUNT_TYPE_PREFIX = """Application Form (In-Direct Customer)
+Organization Name (as per registration document): SAMPLE DEGREE COLLEGE
+Bank Account Number: PLS 3002638893
+Title of Account: Principal Sample Degree College
+Name of the Bank and branch: Sample Bank, Ring Road Branch
+"""
+
 
 #: Synthetic (fabricated, non-real), mirroring the clean label-then-value
 #: layout confirmed in 2 of 3 real cached samples (Confidential Data/.ocr_cache/,
@@ -1347,7 +1394,73 @@ def test_extract_onelink_letter_fields_multi_bank_table_form():
         validation_results=validations,
         consistency_results=RulesEngine().run(document_type, fields),
     )
-    assert status is not VerificationStatus.NEEDS_REVIEW
+    # Changed 2026-09-14: EXPECTED_FIELDS for this type grew from just
+    # organization_name to 4 fields once the extractor was corrected to
+    # target the genuine Application Form (see OneLinkLetterExtractor's
+    # docstring). A Participation-Memorandum-shaped document -- what this
+    # fixture mirrors, and what this checklist slot no longer normally
+    # receives since the 2026-08-25 splitter fix -- honestly has only 1 of
+    # those 4 fields, so its coverage score (and therefore status) is now
+    # correctly lower than when this shape was still the expected content.
+    # This is the intended effect, not a regression: a Participation
+    # Memorandum landing here today is itself anomalous and should be
+    # flagged for review, not silently scored as if it were unremarkable.
+    assert status is VerificationStatus.NEEDS_REVIEW
+
+
+def test_extract_onelink_letter_fields_application_form_iban_shape():
+    document_type = AnalyzedDocumentType.ONE_LINK_LETTER
+    fields = extract_fields(
+        ONE_LINK_LETTER_TEXT_APPLICATION_FORM_IBAN, document_type
+    )
+    assert fields["organization_name"] == "SAMPLE TEHSIL MUNICIPAL ADMINISTRATION"
+    assert fields["account_number_or_iban"] == "PK00SAMP0000000000000000"
+    assert fields["account_holder"] == "Principal Sample Tehsil General Account"
+    assert fields["bank_name"] == "Sample Bank, Main Branch"
+    assert "branch_code" not in fields
+
+
+def test_extract_onelink_letter_fields_application_form_plain_account_shape():
+    document_type = AnalyzedDocumentType.ONE_LINK_LETTER
+    fields = extract_fields(
+        ONE_LINK_LETTER_TEXT_APPLICATION_FORM_PLAIN_ACCOUNT, document_type
+    )
+    assert fields["organization_name"] == "SAMPLE DEVELOPMENT AUTHORITY"
+    # No "PK" prefix -- confirms the field captures a plain account number
+    # just as reliably as an IBAN-shaped one, unchanged by
+    # _last_account_reference_token (single token, nothing to strip).
+    assert fields["account_number_or_iban"] == "1234567890123"
+    assert fields["account_holder"] == "Sample Development Authority General Account"
+    assert fields["bank_name"] == "Sample National Bank, City Branch"
+
+
+def test_extract_onelink_letter_fields_application_form_strips_account_type_prefix():
+    """Regression test for _last_account_reference_token: the one real
+    sample (GDC Achini Payan) whose "Bank Account Number" line reads "PLS
+    3002638893" must extract the bare "3002638893", not the whole line --
+    a verbatim capture would never match the AMC's own bare-digit value in
+    CrossOneLinkAccountRule.
+    """
+    document_type = AnalyzedDocumentType.ONE_LINK_LETTER
+    fields = extract_fields(
+        ONE_LINK_LETTER_TEXT_APPLICATION_FORM_ACCOUNT_TYPE_PREFIX, document_type
+    )
+    assert fields["account_number_or_iban"] == "3002638893"
+
+
+def test_extract_onelink_letter_organization_name_falls_back_to_legacy_pattern():
+    """A Participation-Memorandum-shaped page (the pre-2026-08-25 real
+    content this checklist slot no longer receives, but could still arrive
+    via a misrouted splitter result or a future regression) must still
+    extract organization_name via the legacy clause pattern, since the new
+    labeled-field pattern finds nothing on this shape.
+    """
+    document_type = AnalyzedDocumentType.ONE_LINK_LETTER
+    fields = extract_fields(ONE_LINK_LETTER_TEXT_SINGLE_ACCOUNT, document_type)
+    assert fields["organization_name"] == "SAMPLE TEHSIL MUNICIPAL ADMINISTRATION"
+    assert "account_number_or_iban" not in fields
+    assert "account_holder" not in fields
+    assert "bank_name" not in fields
 
 
 def test_onelink_letter_missing_organization_name_forces_review():
@@ -1376,6 +1489,11 @@ def test_onelink_letter_validators_and_scoring():
     by_field = {result["field"]: result["status"] for result in validations}
     assert by_field["organization_name"] == "valid"
 
+    # "consistency" here means app.document_analysis.rules' own per-document
+    # cross-field checks (RulesEngine, a small, self-contained mechanism) --
+    # unrelated to app.rule_engine's whole-application CrossOneLinkAccountRule,
+    # which needs a full multi-document RuleContext this single-document
+    # extraction test never builds.
     consistency = RulesEngine().run(document_type, fields)
     assert consistency == []  # no cross-document rule watches this type's fields
 
@@ -1385,8 +1503,14 @@ def test_onelink_letter_validators_and_scoring():
         validation_results=validations,
         consistency_results=consistency,
     )
-    assert score == 1.0
-    assert status is VerificationStatus.VERIFIED
+    # Changed 2026-09-14 -- see test_extract_onelink_letter_fields_multi_bank_table_form's
+    # comment for the full reasoning: this fixture is Participation-
+    # Memorandum-shaped, now honestly missing 3 of the 4 fields
+    # EXPECTED_FIELDS expects of the genuine Application Form this slot
+    # actually receives, so a 1.0/VERIFIED result would be a false-positive
+    # today, not a status this shape still earns.
+    assert score == 0.4
+    assert status is VerificationStatus.NEEDS_REVIEW
 
 
 def test_extract_cnic_front_fields_clean_layout():
