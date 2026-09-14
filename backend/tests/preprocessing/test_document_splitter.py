@@ -78,6 +78,147 @@ def test_split_multiple_known_documents():
     ]
 
 
+def test_split_authorization_letter_heading_variant():
+    """A page titled "AUTHORIZATION LETTER" (not "AUTHORITY LETTER") must
+    still classify as AUTHORITY_LETTER.
+
+    Real samples (2026-09-14 department reference document) confirm the
+    heading varies -- see _STRONG_TITLE_PHRASES' AUTHORITY_LETTER entry.
+    """
+    types = _doc_types(["AUTHORIZATION LETTER\nContent here."])
+    assert types == [DocumentType.AUTHORITY_LETTER]
+
+
+def test_split_bare_authorization_heading_variant():
+    """A page titled just "AUTHORIZATION" (no "LETTER") must also classify
+    as AUTHORITY_LETTER.
+    """
+    types = _doc_types(["AUTHORIZATION\nContent here."])
+    assert types == [DocumentType.AUTHORITY_LETTER]
+
+
+def test_split_authority_letter_no_heading_uses_statement_phrase():
+    """A real Authority Letter can carry no heading at all -- identified
+    only by its authorization sentence. Must still start its own new
+    document (not get silently absorbed into the preceding page's group),
+    and must classify as AUTHORITY_LETTER, not OTHER_SUPPORTING_DOCUMENT.
+
+    Regression test for _AUTHORITY_LETTER_STATEMENT_PHRASE: confirmed
+    verbatim (up to the KPITB/KPTIB abbreviation itself) on two independent
+    real samples from two different departments.
+    """
+    types = _doc_types([
+        "TRIPARTITE AGREEMENT\nUnrelated preceding document.",
+        # Wrapped across short lines at word boundaries -- insert_text()
+        # doesn't wrap long lines itself, and a single unwrapped line this
+        # long gets silently clipped by the page width before reaching the
+        # key phrase (confirmed directly: the unwrapped version truncates
+        # to "...CONDUCT COR").
+        "Mr. Jane Doe Accountant Sample Department is\n"
+        "authorized to deal with and conduct correspondence\n"
+        "and matters related to 1-Link and the Khyber\n"
+        "Pakhtunkhwa Information Technology Board (KPITB)\n"
+        "on behalf of Sample Department.",
+    ])
+    assert types == [
+        DocumentType.TRIPARTITE_AGREEMENT,
+        DocumentType.AUTHORITY_LETTER,
+    ]
+
+
+def test_split_bare_authorization_mention_no_longer_weakly_misclassifies():
+    """A page that merely *mentions* "authorization" in unrelated prose,
+    with no strong title evidence and no authorization-statement phrase,
+    must not be weakly typed AUTHORITY_LETTER -- it should fall through to
+    OTHER_SUPPORTING_DOCUMENT like any other unrecognized page.
+
+    See _WEAK_MATCH_EXCLUDED_PHRASES' "AUTHORIZATION" entry.
+    """
+    types = _doc_types([
+        "This memo discusses the authorization process for future "
+        "payments in passing, but is not itself an authority letter of "
+        "any kind.",
+    ])
+    assert types == [DocumentType.OTHER_SUPPORTING_DOCUMENT]
+
+
+def test_split_one_link_form_title_garbled_uses_org_label_fallback():
+    """A real 1-Link Application Form's title banner can OCR unreadable
+    while the form's own "Organization Name (as per registration
+    document)" field label survives -- confirmed 2026-09-14 on a real,
+    severely degraded scan (CMGP Peshawar) whose title read
+    "A ilicationFormfln-DirectCustomerl" (nowhere close to matching
+    "APPLICATION FORM (IN-DIRECT"), while the org-name label survived
+    intact except for its word-spacing being lost entirely.
+
+    Must still start its own new document (not get absorbed into the
+    preceding page's group) and classify as ONE_LINK_LETTER.
+    """
+    types = _doc_types([
+        "TRIPARTITE AGREEMENT\nUnrelated preceding document.",
+        # Mashed together with no spaces at all, exactly as OCR produced
+        # it on the real degraded scan this fallback exists for.
+        "A ilicationFormfln-DirectCustomerl\n"
+        "OrganizationName(asperregistrationdocument):SampleOrg",
+    ])
+    assert types == [
+        DocumentType.TRIPARTITE_AGREEMENT,
+        DocumentType.ONE_LINK_LETTER,
+    ]
+
+
+def test_split_one_link_form_org_label_matches_with_normal_spacing_too():
+    """The whitespace-stripped fallback must also match the label when it
+    OCRs with completely normal spacing (most real samples) -- confirming
+    the fix isn't narrowly tuned to only the mashed-together shape.
+    """
+    types = _doc_types([
+        "Some unrelated title that matches nothing.\n"
+        "Organization Name (as per registration document): Sample Org",
+    ])
+    assert types == [DocumentType.ONE_LINK_LETTER]
+
+
+def test_split_formal_request_letter_non_office_letterhead_uses_subject_keywords():
+    """A real Formal Request Letter's letterhead can be an org-name banner
+    instead of "OFFICE OF THE..." -- confirmed 2026-09-14 on a real sample
+    (CMGP Peshawar) whose letterhead reads "CAPITAL METROPOLITAN
+    GOVERNMENT PESHAWAR" and whose real subject line ("SUBJECT: ON
+    BOARDING AS A SUB- BILLER WITH KPITB") landed, via OCR's own line
+    ordering, far apart from the bare "Subject:" line itself -- so this
+    fallback is deliberately whole-page, not same-line or header-zone
+    restricted (see _FORMAL_REQUEST_SUBJECT_KEYWORDS).
+    """
+    types = _doc_types([
+        "SAMPLE METROPOLITAN GOVERNMENT\n"
+        "Phone: 000-0000000\n"
+        "To\n"
+        "Subject:\n"
+        "The Managing Director,\n"
+        "Khyber Pakhtunkhwa Information Technology Board.\n"
+        "ON BOARDING AS A SUB- BILLER WITH KPITB,\n"
+        "SAMPLE CITY",
+    ])
+    assert types == [DocumentType.FORMAL_REQUEST_LETTER]
+
+
+def test_split_sub_biller_mention_without_subject_line_stays_tripartite():
+    """A genuine Tripartite/Participation Memorandum mentions "Sub-Biller"
+    throughout its own body text but never carries a "Subject:" label --
+    the new whole-page fallback must not misfire on it (see
+    _FORMAL_REQUEST_SUBJECT_KEYWORDS' false-positive reasoning).
+    """
+    types = _doc_types([
+        "PARTICIPATION MEMORANDUM FOR BILLER/SUB-BILLERS/BILL AGGREGATOR "
+        "MEMBERS\n"
+        "Sample Department hereby agrees that upon execution of this "
+        "Participation Memorandum, it shall be subject to all obligations "
+        "of and have all the rights and benefits of Biller/Sub-Biller/Bill "
+        "Aggregator Member as an on boarding sub biller.",
+    ])
+    assert types == [DocumentType.TRIPARTITE_AGREEMENT]
+
+
 def test_split_unclassified_pages_become_other():
     """Pages with no matching keywords should be grouped as OTHER_SUPPORTING_DOCUMENT."""
     result = _split(["Random unrecognized document content."])

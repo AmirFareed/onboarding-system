@@ -9,6 +9,7 @@ queue-ready ``Document`` rows.
 """
 
 import logging
+import re
 import string
 from typing import NamedTuple
 
@@ -165,6 +166,47 @@ _ACCOUNT_MAINTENANCE_BANK_NAMES: tuple[str, ...] = (
 #: entry in this file.
 _AMC_BALANCE_FIELD_LABELS: tuple[str, str] = ("CLOSING BALANCE", "AVERAGE BALANCE")
 
+#: Structural fallback for Authority Letters that carry no heading at all --
+#: confirmed 2026-09-14 on two independent real samples from two different
+#: departments (Capital Metropolitan Government Peshawar; TMA Thall) that
+#: state this exact sentence verbatim, word-for-word, up to the KPITB
+#: abbreviation itself (one sample OCRs it "KPITB", the other "KPTIB" --
+#: excluded from the anchor for that reason). Evidently boilerplate off a
+#: shared government template, not phrasing either department chose
+#: independently. Deliberately not placed in _STRONG_TITLE_PHRASES: that
+#: table only matches a phrase anchored at the *start* of a line inside the
+#: header zone, but the subject of this sentence (a name and designation)
+#: varies and precedes it ("Mr. X ... is authorized...", "It is hereby
+#: authorized that Mr. X ... is authorized..."), so it is never itself a
+#: line's first token -- this can only be an unanchored substring check,
+#: evaluated as a structural fallback the same way as
+#: _AMC_BALANCE_FIELD_LABELS above. Long and specific enough (11 words) that
+#: the false-positive risk of an unanchored, whole-page check is negligible.
+_AUTHORITY_LETTER_STATEMENT_PHRASE = (
+    "AUTHORIZED TO DEAL WITH AND CONDUCT CORRESPONDENCE AND MATTERS RELATED "
+    "TO 1-LINK AND THE KHYBER PAKHTUNKHWA INFORMATION TECHNOLOGY BOARD"
+)
+
+#: Structural fallback for 1-Link Application Form pages whose title banner
+#: OCRs unreadable -- confirmed 2026-09-14 on a real, severely degraded scan
+#: (CMGP Peshawar) where the stylized title line corrupted past recognition
+#: ("A ilicationFormfln-DirectCustomerl", nowhere close to matching the
+#: "APPLICATION FORM (IN-DIRECT" phrase in _STRONG_TITLE_PHRASES) but the
+#: form's own labeled Organization Name field survived character-for-
+#: character, just with its word-spacing lost entirely
+#: ("OrganizationName(asperregistrationdocument)" -- no spaces at all,
+#: unlike every other field label on the same page, which kept normal
+#: spacing; a scan-quality artifact specific to that dense area of the
+#: page, not a wording problem). This exact label, normally spaced, is
+#: independently confirmed on 3 other real samples from 3 other
+#: departments in the same session (GDC Achini Payan, GDC Bakhshali
+#: Mardan, GDC Barkhalozai Bajaur) -- a reliable, unique-to-this-form
+#: anchor; only its *spacing* is what's unreliable under OCR, which is why
+#: this check strips whitespace from both sides before comparing rather
+#: than requiring an exact spaced match like every other phrase check in
+#: this file.
+_ONE_LINK_ORG_LABEL_COMPACT = "ORGANIZATIONNAME(ASPERREGISTRATIONDOCUMENT)"
+
 #: Strong title phrases keyed in preference order. Iterated deterministically;
 #: the first phrase found wins. These phrases are only ever treated as strong
 #: evidence when anchored at the start of a line inside the header region.
@@ -226,7 +268,20 @@ _STRONG_TITLE_PHRASES: list[tuple[DocumentType, tuple[str, ...]]] = [
             "1LINK",
         ),
     ),
-    (DocumentType.AUTHORITY_LETTER, ("AUTHORITY LETTER",)),
+    (
+        DocumentType.AUTHORITY_LETTER,
+        (
+            "AUTHORITY LETTER",
+            # Real samples (2026-09-14 department reference document)
+            # confirm the heading itself varies -- some real authority
+            # letters are titled "Authorization" or "Authorization Letter"
+            # instead. A third real variant, no heading at all, can't be
+            # caught here (there's no title line to anchor on) -- see
+            # _AUTHORITY_LETTER_STATEMENT_PHRASE below.
+            "AUTHORIZATION LETTER",
+            "AUTHORIZATION",
+        ),
+    ),
     (
         DocumentType.BUSINESS_REQUIREMENT_DOCUMENT,
         ("BUSINESS REQUIREMENT DOCUMENT", "BUSINESS REQUIREMENT"),
@@ -276,6 +331,36 @@ _STRONG_TITLE_PHRASES: list[tuple[DocumentType, tuple[str, ...]]] = [
 #: unchanged) -- it only catches the cases that phrase list misses.
 _FORMAL_REQUEST_LETTERHEAD_PREFIX = "OFFICE OF THE"
 _FORMAL_REQUEST_SUBJECT_PREFIX = "SUBJECT:"
+
+#: Second, independent Formal Request Letter structural fallback, added
+#: 2026-09-14 on a real sample (CMGP Peshawar) that defeated the
+#: letterhead-based fallback above: its letterhead reads "CAPITAL
+#: METROPOLITAN GOVERNMENT PESHAWAR" (an org-name banner, like AMC's or
+#: BRD's own letterheads), never "OFFICE OF THE", so
+#: _FORMAL_REQUEST_LETTERHEAD_PREFIX never matches. Its real subject line
+#: is "SUBJECT: ON BOARDING AS A SUB- BILLER WITH KPITB" (note the OCR'd
+#: hyphen-space in "SUB- BILLER") -- addressed to KPITB, requesting
+#: onboarding as a sub-biller, which is this document's entire real-world
+#: purpose regardless of department. Checked whole-page (see the
+#: full_text.upper() call site below), not line-by-line like the check
+#: above: confirmed on this same real sample that OCR's own line ordering
+#: can separate "Subject:" from its actual content onto lines far apart in
+#: the extracted sequence, so requiring both on one line -- or even both
+#: within the header zone -- would miss exactly the case this exists for.
+#: Deliberately still requires the "SUBJECT:" prefix to appear somewhere on
+#: the page (not just a bare keyword match) for the same false-positive
+#: reason as the check above: the Tripartite/Participation Memorandum
+#: discusses "Sub-Biller" status throughout its own body text but never
+#: carries a "Subject:" label anywhere, so it stays excluded.
+_FORMAL_REQUEST_SUBJECT_KEYWORDS: tuple[str, ...] = (
+    "SUB-BILLER",
+    "SUB- BILLER",
+    "SUB BILLER",
+    "SUBBILLER",
+    "ON BOARDING",
+    "ON-BOARDING",
+    "ONBOARDING",
+)
 
 #: Strong-title phrases that mark a *continuation* of the same logical
 #: document when the identical phrase repeats on the immediately following
@@ -404,8 +489,17 @@ _FULL_PAGE_STRONG_PHRASES: list[tuple[DocumentType, tuple[str, ...]]] = [
 #: is the bank's own AMC letterhead. Header-zone strong matching via
 #: _classify_page is untouched; only the unanchored whole-page fallback is
 #: excluded.
+#:
+#: "AUTHORIZATION" (bare, added 2026-09-14 alongside the AUTHORITY_LETTER
+#: title-phrase widening above) is excluded for the same shape of reason,
+#: pre-emptively rather than from an observed false positive: it is a
+#: common enough word to plausibly appear in unrelated body prose on other
+#: document types (e.g. a BRD or Formal Request Letter mentioning
+#: "authorization" from KPITB), unlike "AUTHORITY LETTER" or "AUTHORIZATION
+#: LETTER", which are specific two-word titles with no such risk. Header-
+#: zone strong matching (a real title line) is untouched.
 _WEAK_MATCH_EXCLUDED_PHRASES: frozenset[str] = frozenset(
-    {"1LINK", "ONELINK", "ONE-LINK", *_ACCOUNT_MAINTENANCE_BANK_NAMES}
+    {"1LINK", "ONELINK", "ONE-LINK", "AUTHORIZATION", *_ACCOUNT_MAINTENANCE_BANK_NAMES}
 )
 
 #: Marks a manifest/checklist cover page -- confirmed on multiple independent
@@ -689,7 +783,16 @@ class DocumentSplitter:
             try:
                 import cv2
                 import numpy as np
-                pix = page.get_pixmap(dpi=150)
+                # Matches app.document_processing.constants.SCANNED_PDF_RENDER_DPI
+                # -- confirmed 2026-09-14 as a real, accidental inconsistency, not
+                # a deliberate choice: this pass previously rendered at 150 DPI
+                # while the main analysis pipeline renders the identical page at
+                # 200 DPI, so a page could OCR cleanly enough for real field
+                # extraction later but still be too degraded here for the
+                # splitter's own classification decision (confirmed on a real
+                # CMGP Peshawar sample: a 1-Link Application Form's title
+                # rendered unreadable at the splitter's resolution).
+                pix = page.get_pixmap(dpi=200)
                 img = np.frombuffer(pix.samples, dtype=np.uint8).reshape(pix.h, pix.w, pix.n)
                 if pix.n == 4:
                     img = cv2.cvtColor(img, cv2.COLOR_RGBA2RGB)
@@ -767,6 +870,43 @@ class DocumentSplitter:
         # would just reproduce the bug being fixed.
         if all(label in full_text.upper() for label in _AMC_BALANCE_FIELD_LABELS):
             return DocumentType.ACCOUNT_MAINTENANCE_CERTIFICATE, True, None
+
+        # Second, independent Formal Request Letter fallback -- see
+        # _FORMAL_REQUEST_SUBJECT_KEYWORDS. Whole-page, unanchored, unlike
+        # the letterhead+subject combo above: confirmed on a real sample
+        # (CMGP Peshawar) that the OCR fallback's own line ordering can
+        # separate "Subject:" from its actual content onto lines far apart
+        # in the extracted sequence (a bare "Subject:" line with nothing
+        # after it, the real subject text reordered elsewhere entirely) --
+        # a same-line or header-zone-restricted check would miss this
+        # exact real case. Still requires "SUBJECT:" to appear somewhere
+        # (not just the bare keywords) for the same false-positive reason
+        # as the check above: Tripartite/Participation Memorandum pages
+        # mention "Sub-Biller" throughout their own body text but never
+        # carry a "Subject:" label at all, so they stay excluded. Evaluated
+        # after the second pass above, so a genuine Tripartite page is
+        # already claimed by "PARTICIPATION MEMORANDUM" before reaching
+        # here regardless.
+        if "SUBJECT:" in full_text.upper() and any(
+            keyword in full_text.upper() for keyword in _FORMAL_REQUEST_SUBJECT_KEYWORDS
+        ):
+            return DocumentType.FORMAL_REQUEST_LETTER, True, None
+
+        # Structural Authority Letter fallback -- see
+        # _AUTHORITY_LETTER_STATEMENT_PHRASE. Whole-page, unanchored: the
+        # sentence's subject varies and precedes it, so it is never a line's
+        # first token the way a title heading would be.
+        if _AUTHORITY_LETTER_STATEMENT_PHRASE in full_text.upper():
+            return DocumentType.AUTHORITY_LETTER, True, None
+
+        # Structural 1-Link Application Form fallback -- see
+        # _ONE_LINK_ORG_LABEL_COMPACT. Whitespace-stripped on both sides,
+        # unlike every other check in this file: the failure mode here is
+        # OCR losing word-spacing on a dense small-text field label, not a
+        # position or wording problem a normal substring check would catch.
+        compact_text = re.sub(r"\s+", "", full_text.upper())
+        if _ONE_LINK_ORG_LABEL_COMPACT in compact_text:
+            return DocumentType.ONE_LINK_LETTER, True, None
 
         return cls._classify_text(full_text), False, None
 
